@@ -1,6 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://ayyrgbaepoxukybimlhx.supabase.co';
-const supabaseKey = 'sb_publishable_eFYCmXXW90TB6VhoZXeWZQ_P3o0aPfC';
+// En lugar de texto fijo, leemos las variables de entorno
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Faltan las variables de entorno de Supabase')
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
