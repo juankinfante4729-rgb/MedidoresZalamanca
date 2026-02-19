@@ -6,6 +6,7 @@
     <title>Alcázar de Salamanca</title>
     
     <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+    
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap" rel="stylesheet" />
@@ -22,45 +23,46 @@
     </script>
 
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: { primary: "#3b82f6" } // Celeste original
-          }
-        }
-      };
+      tailwind.config = { theme: { extend: { colors: { primary: "#3b82f6" } } } };
     </script>
 
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
 
-      /* PARCHE CRÍTICO PARA VERCEL: Recupera el input oculto */
+      /* SOLUCIÓN PARA PRODUCCIÓN (VERCEL) */
+      
+      /* 1. Ocultamos el pie de página que se queda trabado en rojo */
+      .n8n-chat-widget-footer {
+        display: none !important;
+        height: 0 !important;
+        padding: 0 !important;
+      }
+
+      /* 2. Forzamos que el cuadro de texto aparezca sí o sí */
+      .n8n-chat-widget-input {
+        display: flex !important;
+        visibility: visible !important;
+        min-height: 70px !important;
+        opacity: 1 !important;
+      }
+
+      /* 3. Ajustamos el contenedor para que no expulse al input */
       #n8n-chat-render-area, .n8n-chat-widget {
         height: 100% !important;
         display: flex !important;
         flex-direction: column !important;
-        overflow: hidden !important;
       }
 
-      /* Obliga a los mensajes a no aplastar al cuadro de texto */
       .n8n-chat-widget-messages {
-        flex: 1 1 auto !important;
+        flex: 1 !important;
         height: auto !important;
-      }
-
-      /* Asegura que el área de escritura siempre tenga 60px de altura mínima */
-      .n8n-chat-widget-input {
-        display: flex !important;
-        min-height: 64px !important;
-        background: white !important;
-        border-top: 1px solid #f1f5f9 !important;
       }
 
       /* Cabecera Celeste */
       .n8n-chat-widget-header {
         background-color: #3b82f6 !important;
-        padding: 10px 16px !important;
-        min-height: 52px !important;
+        padding: 8px 16px !important;
+        min-height: 50px !important;
       }
       .n8n-chat-widget-header-title, .n8n-chat-widget-header-subtitle { color: white !important; }
 

@@ -23,21 +23,16 @@ export const Login: React.FC = () => {
             showWelcomeMessage: true,
             title: '¡Hola! 👋', 
             subtitle: 'En línea',
-            initialMessages: [
-                'Bienvenido al portal del conjunto.',
-                'Por favor, dime tu número de casa para ayudarte.',
-            ],
             style: {
                 primaryColor: '#3b82f6',
                 backgroundColor: '#ffffff',
             },
             i18n: {
-                en: { // Sobrescribimos el idioma base para español total
+                en: { // Traducción forzada para el sistema
                     title: '¡Hola! 👋',
-                    subtitle: 'En línea',
+                    subtitle: 'Estamos para ayudarte',
                     placeholder: 'Escribe tu consulta aquí...', 
-                    send: 'Enviar',
-                    footer: '' // Quitamos el footer para ganar espacio
+                    send: 'Enviar'
                 }
             }
           });
@@ -99,14 +94,14 @@ export const Login: React.FC = () => {
             </form>
           </div>
 
-          {/* VISTA ASISTENTE (ID para aplicar CSS de fuerza) */}
+          {/* VISTA ASISTENTE (ID de fuerza aplicado) */}
           <div className={`absolute inset-0 flex flex-col transition-all duration-500 ${activeTab === 'asistente' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
              <div className="p-3 border-b border-slate-50 flex justify-end">
                 <button onClick={() => setActiveTab('login')} className="p-1 hover:bg-slate-100 rounded-lg">
                     <span className="material-symbols-outlined text-slate-400 text-sm">close</span>
                 </button>
              </div>
-             {/* El ID 'n8n-chat-render-area' activa las reglas de index.html para producción */}
+             {/* Este ID activa las reglas del index.html para producción */}
              <div id="n8n-chat-render-area" ref={chatContainerRef} className="flex-1 bg-white overflow-hidden relative"></div>
           </div>
 
