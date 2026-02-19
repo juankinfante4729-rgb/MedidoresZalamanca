@@ -32,7 +32,7 @@ export const Login: React.FC = () => {
             i18n: {
                 en: {
                     title: 'Soporte Administrativo',
-                    placeholder: 'Escribe tu consulta aquí...', // Clave para que aparezca el input
+                    placeholder: 'Escribe tu consulta aquí...', // Clave para asegurar visibilidad
                     send: 'Enviar'
                 }
             }
@@ -59,7 +59,7 @@ export const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-[650px] border border-white">
         
-        {/* PANEL IZQUIERDO: FOTO NÍTIDA (60%) */}
+        {/* PANEL IZQUIERDO: Foto Nítida (60%) */}
         <div className="hidden md:flex flex-col justify-between w-[60%] bg-slate-900 p-12 text-white relative">
           <div className="absolute inset-0 bg-cover bg-center opacity-100" style={{ backgroundImage: `url('${HOME_HERO_IMAGE}')` }}></div>
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent"></div>
@@ -81,12 +81,12 @@ export const Login: React.FC = () => {
           </div>
         </div>
 
-        {/* PANEL DERECHO: FORMULARIO ACORTADO (40%) */}
+        {/* PANEL DERECHO: Formulario Acortado (40%) */}
         <div className="w-full md:w-[40%] bg-white flex flex-col items-center justify-center relative border-l border-slate-50">
           
           <div className={`w-full max-w-[320px] px-4 transition-all duration-500 ${activeTab === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             <h2 className="text-2xl font-extrabold text-slate-800 mb-2">Bienvenido</h2>
-            <p className="text-slate-500 text-sm mb-10 font-medium">Ingresa a tu cuenta</p>
+            <p className="text-slate-500 text-sm mb-10 font-medium">Accede a tu cuenta</p>
 
             <form onSubmit={handleLogin} className="space-y-5">
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-primary transition-all text-sm" placeholder="Correo" required />
@@ -97,7 +97,7 @@ export const Login: React.FC = () => {
             </form>
           </div>
 
-          {/* VISTA ASISTENTE (Estructura fija para evitar recortes) */}
+          {/* VISTA ASISTENTE (Estructura fija para evitar recortes en Vercel) */}
           <div className={`absolute inset-0 flex flex-col transition-all duration-500 ${activeTab === 'asistente' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
              <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h3 className="font-bold text-slate-800 text-sm">Asistente Virtual</h3>
@@ -106,7 +106,7 @@ export const Login: React.FC = () => {
                 </button>
              </div>
              
-             {/* El ID 'n8n-chat-render-area' activa el CSS del index.html */}
+             {/* El ID 'n8n-chat-render-area' activa el CSS del index.html para forzar la visibilidad del input */}
              <div id="n8n-chat-render-area" ref={chatContainerRef} className="flex-1 bg-white overflow-hidden relative"></div>
           </div>
 
