@@ -5,7 +5,7 @@ import { Registry } from './components/Registry';
 import { HouseDetail } from './components/HouseDetail';
 import { Login } from './components/Login';
 import { ViewState, House, REQUIRED_DOCS, DocStatus } from './types';
-import { MOCK_HOUSES } from './constants';
+import { MOCK_HOUSES } from './constants'; // Mocks only used for initial seeding if DB is empty
 import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 
@@ -42,7 +42,7 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [initialCheck, setInitialCheck] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
-  const [showRlsBanner, setShowRlsBanner] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Auth Listener
   useEffect(() => {
@@ -62,11 +62,11 @@ const App = () => {
 
   // Load data from Supabase
   const loadData = useCallback(async () => {
-    if (!session) return; // Don't load if not authenticated
+    if (!session) return; 
 
     try {
       setLoading(true);
-      setShowRlsBanner(false);
+      setErrorMsg(null);
       
       const { data, error } = await supabase
         .from('houses')
@@ -80,6 +80,7 @@ const App = () => {
       if (data && data.length > 0) {
         const mappedHouses: House[] = data.map((row: any) => {
            let rawDocuments = row.documents;
+           // Fallback for malformed data
            if (!rawDocuments || !Array.isArray(rawDocuments) || rawDocuments.length === 0) {
              rawDocuments = REQUIRED_DOCS.map(d => ({
                id: d.id,
@@ -117,8 +118,8 @@ const App = () => {
         });
         setHouses(mappedHouses);
       } else {
-        console.log("Database empty. Seeding mock data...");
-        // Only seed if we have write permission (which we should if authenticated)
+        // If DB is empty, seeding only happens once authorized
+        console.log("Database empty. Seeding initial data...");
         const seedData = MOCK_HOUSES.map(h => ({
           id: h.id,
           house_number: h.houseNumber,
@@ -133,19 +134,14 @@ const App = () => {
         
         if (insertError) {
           console.error("Error seeding data:", insertError);
-          // Don't show banner for duplicate key errors, just means data exists but load failed
-          if (insertError.code !== '23505') setShowRlsBanner(true);
-          setHouses(MOCK_HOUSES.map(h => ({...h, livesAbroad: false}))); 
-          setIsConnected(false);
+          setErrorMsg("No se pudieron cargar los datos. Verifica los permisos de la base de datos.");
         } else {
-          loadData();
+          loadData(); // Reload to map correctly
         }
       }
     } catch (err: any) {
       console.error("Error loading houses:", err);
-      // Pese a estar logueado, podría haber error de RLS si la politica esta mal configurada
-      setShowRlsBanner(true); 
-      setHouses(MOCK_HOUSES.map(h => ({...h, livesAbroad: false}))); 
+      setErrorMsg("Error de conexión. Revisa tu internet o los permisos de usuario.");
       setIsConnected(false);
     } finally {
       setLoading(false);
@@ -169,110 +165,84 @@ const App = () => {
     setView('detail');
   };
 
-  const updateHouseStatus = async (houseId: number, docId: string, status: boolean) => {
-    const houseIndex = houses.findIndex(h => h.id === houseId);
-    if (houseIndex === -1) return;
+  // Generic update wrapper
+  const updateHouseData = async (houseId: number, optimisticUpdate: (houses: House[]) => House[]) => {
+    // 1. Optimistic UI Update
+    const previousHouses = [...houses];
+    const newHouses = optimisticUpdate(previousHouses);
+    setHouses(newHouses);
 
-    const currentHouse = houses[houseIndex];
-
-    const newDocs: DocStatus[] = currentHouse.documents.map(d => 
-      d.id === docId ? { 
-        ...d, 
-        isSubmitted: status, 
-        status: status ? 'approved' : 'pending',
-        submissionDate: status ? (d.submissionDate || new Date().toISOString().split('T')[0]) : undefined
-      } : d
-    );
-
-    const submittedCount = newDocs.filter(d => d.isSubmitted).length;
-    const progress = Math.round((submittedCount / REQUIRED_DOCS.length) * 100);
-
-    const updatedHouse = { ...currentHouse, documents: newDocs as any, progress };
-
-    setHouses(prev => {
-      const newHouses = [...prev];
-      newHouses[houseIndex] = updatedHouse;
-      return newHouses;
-    });
-
+    // 2. DB Update
     if (isConnected && session) {
       try {
-        const docsWithMeta = prepareDocsForSave(newDocs, currentHouse.isConstructora, currentHouse.livesAbroad);
-        await supabase
-          .from('houses')
-          .update({ 
+        const updatedHouse = newHouses.find(h => h.id === houseId);
+        if (!updatedHouse) return;
+
+        const docsWithMeta = prepareDocsForSave(updatedHouse.documents, updatedHouse.isConstructora, updatedHouse.livesAbroad);
+        
+        const updates: any = { 
             documents: docsWithMeta,
-            last_activity: 'Hace un momento'
-          })
-          .eq('id', houseId);
-      } catch (err) {
-        console.error("Network/Supabase Error:", err);
-      }
-    }
-  };
-
-  const updateDocDate = async (houseId: number, docId: string, date: string) => {
-    const houseIndex = houses.findIndex(h => h.id === houseId);
-    if (houseIndex === -1) return;
-
-    const currentHouse = houses[houseIndex];
-    const newDocs = currentHouse.documents.map(d => 
-      d.id === docId ? { ...d, submissionDate: date } : d
-    );
-    const updatedHouse = { ...currentHouse, documents: newDocs as any };
-
-    setHouses(prev => {
-      const newHouses = [...prev];
-      newHouses[houseIndex] = updatedHouse;
-      return newHouses;
-    });
-
-    if (isConnected && session) {
-      try {
-        const docsWithMeta = prepareDocsForSave(newDocs, currentHouse.isConstructora, currentHouse.livesAbroad);
-        await supabase
-          .from('houses')
-          .update({ documents: docsWithMeta })
-          .eq('id', houseId);
-      } catch (err) {
-         console.error("Error updating date:", err);
-      }
-    }
-  };
-
-  const updateHouseInfo = async (houseId: number, data: { ownerName: string; phoneNumber: string; houseNumber: string; isConstructora: boolean; livesAbroad: boolean; imageUrl?: string }) => {
-    setHouses(prev => prev.map(h => {
-      if (h.id === houseId) {
-        return { ...h, ...data };
-      }
-      return h;
-    }));
-
-    if (isConnected && session) {
-        try {
-        const currentHouse = houses.find(h => h.id === houseId);
-        const currentDocs = currentHouse?.documents || [];
-        const docsWithMeta = prepareDocsForSave(currentDocs, data.isConstructora, data.livesAbroad);
-
-        const updates: any = {
-            owner_name: data.ownerName,
-            phone_number: data.phoneNumber,
-            house_number: data.houseNumber,
-            documents: docsWithMeta,
+            last_activity: 'Hace un momento',
+            // Update other fields if they changed in the house object (simplification for this demo)
+            owner_name: updatedHouse.ownerName,
+            phone_number: updatedHouse.phoneNumber,
+            house_number: updatedHouse.houseNumber,
+            image_url: updatedHouse.imageUrl
         };
 
-        if (data.imageUrl) {
-            updates.image_url = data.imageUrl;
-        }
+        const { error } = await supabase
+          .from('houses')
+          .update(updates)
+          .eq('id', houseId);
 
-        await supabase
-            .from('houses')
-            .update(updates)
-            .eq('id', houseId);
-        } catch (err) {
-            console.error("Error updating info:", err);
-        }
+        if (error) throw error;
+
+      } catch (err) {
+        console.error("Sync Error:", err);
+        // Revert on error
+        setHouses(previousHouses);
+        alert("Error al guardar cambios. Verifica tu conexión.");
+      }
     }
+  };
+
+  const updateHouseStatus = (houseId: number, docId: string, status: boolean) => {
+    updateHouseData(houseId, (prev) => {
+        return prev.map(h => {
+            if (h.id !== houseId) return h;
+            const newDocs = h.documents.map(d => 
+                d.id === docId ? { 
+                    ...d, 
+                    isSubmitted: status,
+                    submissionDate: status ? (d.submissionDate || new Date().toISOString().split('T')[0]) : undefined
+                } : d
+            );
+            const submittedCount = newDocs.filter(d => d.isSubmitted).length;
+            const progress = Math.round((submittedCount / REQUIRED_DOCS.length) * 100);
+            return { ...h, documents: newDocs as any, progress };
+        });
+    });
+  };
+
+  const updateDocDate = (houseId: number, docId: string, date: string) => {
+    updateHouseData(houseId, (prev) => {
+        return prev.map(h => {
+            if (h.id !== houseId) return h;
+            const newDocs = h.documents.map(d => 
+                d.id === docId ? { ...d, submissionDate: date } : d
+            );
+            return { ...h, documents: newDocs as any };
+        });
+    });
+  };
+
+  const updateHouseInfo = (houseId: number, data: { ownerName: string; phoneNumber: string; houseNumber: string; isConstructora: boolean; livesAbroad: boolean; imageUrl?: string }) => {
+    updateHouseData(houseId, (prev) => {
+        return prev.map(h => {
+            if (h.id !== houseId) return h;
+            return { ...h, ...data };
+        });
+    });
   };
 
   const renderContent = () => {
@@ -333,22 +303,22 @@ const App = () => {
   // 3. Authenticated App
   return (
     <div className="min-h-screen bg-background-light flex flex-col md:flex-row text-slate-900">
-      {showRlsBanner && (
+      
+      {errorMsg && (
         <div className="fixed top-0 left-0 right-0 z-[60] bg-red-600 text-white px-4 py-3 shadow-lg flex items-center justify-between">
             <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined bg-white/20 p-1 rounded">warning</span>
-                <div className="text-sm">
-                    <p className="font-bold">Error de Permisos (RLS)</p>
-                    <p className="opacity-90">Tu usuario no tiene permisos para escribir. Revisa las políticas en Supabase.</p>
+                <div className="text-sm font-medium">
+                    {errorMsg}
                 </div>
             </div>
-            <button onClick={() => setShowRlsBanner(false)} className="bg-white/20 hover:bg-white/30 rounded p-1">
+            <button onClick={() => setErrorMsg(null)} className="bg-white/20 hover:bg-white/30 rounded p-1">
                 <span className="material-symbols-outlined text-sm">close</span>
             </button>
         </div>
       )}
 
-      <aside className={`hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-screen sticky top-0 p-4 ${showRlsBanner ? 'mt-[60px]' : ''}`}>
+      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-screen sticky top-0 p-4">
         <div className="flex items-center gap-3 px-2 mb-8 mt-2">
           <div className="size-8 rounded bg-primary flex items-center justify-center text-white font-bold">A</div>
           <div>
@@ -390,9 +360,9 @@ const App = () => {
         </nav>
 
         <div className="pt-4 border-t border-slate-200 space-y-2">
-           <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border ${isConnected ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
-             <div className={`size-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-orange-500'}`}></div>
-             {isConnected ? 'Conectado' : 'Sin Conexión'}
+           <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border ${isConnected ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
+             <div className={`size-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
+             {isConnected ? 'Sistema en Línea' : 'Desconectado'}
            </div>
            
            <button 
