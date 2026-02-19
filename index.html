@@ -34,7 +34,7 @@
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
 
-      /* SOLUCIÓN PARA VERCEL: Recupera el input oculto */
+      /* PARCHE CRÍTICO PARA VERCEL: Recupera el input oculto */
       #n8n-chat-render-area, .n8n-chat-widget {
         height: 100% !important;
         display: flex !important;
@@ -42,25 +42,25 @@
         overflow: hidden !important;
       }
 
-      /* Obliga a los mensajes a dejar espacio al input field */
+      /* Obliga a los mensajes a no aplastar al cuadro de texto */
       .n8n-chat-widget-messages {
         flex: 1 1 auto !important;
         height: auto !important;
       }
 
-      /* Asegura que el área de escritura siempre sea visible */
+      /* Asegura que el área de escritura siempre tenga 60px de altura mínima */
       .n8n-chat-widget-input {
         display: flex !important;
-        min-height: 60px !important;
+        min-height: 64px !important;
         background: white !important;
         border-top: 1px solid #f1f5f9 !important;
       }
 
-      /* Estilo del Header Celeste */
+      /* Cabecera Celeste */
       .n8n-chat-widget-header {
         background-color: #3b82f6 !important;
-        padding: 8px 16px !important;
-        min-height: 50px !important;
+        padding: 10px 16px !important;
+        min-height: 52px !important;
       }
       .n8n-chat-widget-header-title, .n8n-chat-widget-header-subtitle { color: white !important; }
 

@@ -22,11 +22,10 @@ export const Login: React.FC = () => {
             mode: 'fullscreen',
             showWelcomeMessage: true,
             title: '¡Hola! 👋', 
-            subtitle: 'Atención al Vecino 24/7',
-            // Eliminamos el footer de aquí para que no estorbe al input en producción
+            subtitle: 'En línea',
             initialMessages: [
                 'Bienvenido al portal del conjunto.',
-                'Dime tu número de casa para ayudarte.',
+                'Por favor, dime tu número de casa para ayudarte.',
             ],
             style: {
                 primaryColor: '#3b82f6',
@@ -34,10 +33,11 @@ export const Login: React.FC = () => {
             },
             i18n: {
                 en: { // Sobrescribimos el idioma base para español total
-                    title: 'Soporte Administrativo',
+                    title: '¡Hola! 👋',
+                    subtitle: 'En línea',
                     placeholder: 'Escribe tu consulta aquí...', 
                     send: 'Enviar',
-                    footer: '' // Dejamos vacío para ganar espacio
+                    footer: '' // Quitamos el footer para ganar espacio
                 }
             }
           });
@@ -60,10 +60,10 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 font-['Inter']">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-['Inter']">
       <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-[650px] border border-white">
         
-        {/* PANEL IZQUIERDO: FOTO NÍTIDA AL 60% */}
+        {/* PANEL IZQUIERDO: FOTO AL 60% */}
         <div className="hidden md:flex flex-col justify-between w-[60%] bg-slate-900 p-12 text-white relative">
           <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${HOME_HERO_IMAGE}')` }}></div>
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent"></div>
@@ -99,14 +99,14 @@ export const Login: React.FC = () => {
             </form>
           </div>
 
-          {/* VISTA ASISTENTE: Con ID para aplicar las reglas de fuerza de producción */}
+          {/* VISTA ASISTENTE (ID para aplicar CSS de fuerza) */}
           <div className={`absolute inset-0 flex flex-col transition-all duration-500 ${activeTab === 'asistente' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
              <div className="p-3 border-b border-slate-50 flex justify-end">
                 <button onClick={() => setActiveTab('login')} className="p-1 hover:bg-slate-100 rounded-lg">
                     <span className="material-symbols-outlined text-slate-400 text-sm">close</span>
                 </button>
              </div>
-             {/* Este ID 'n8n-chat-render-area' activa el CSS del index.html para producción */}
+             {/* El ID 'n8n-chat-render-area' activa las reglas de index.html para producción */}
              <div id="n8n-chat-render-area" ref={chatContainerRef} className="flex-1 bg-white overflow-hidden relative"></div>
           </div>
 
