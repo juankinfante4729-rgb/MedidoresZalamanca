@@ -27,7 +27,8 @@
         theme: {
           extend: {
             colors: {
-              primary: "#3b82f6", // Celeste Alcázar
+              // Color celeste restaurado para todo el sitio
+              primary: "#3b82f6", 
             }
           }
         }
@@ -37,29 +38,40 @@
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
 
-      /* CORRECCIÓN DE COLOR Y ALTURA DE CABECERA */
-      .n8n-chat-widget-header {
-        background-color: #3b82f6 !important; /* Forzamos Celeste */
-        padding: 8px 16px !important; /* Subimos el contenido (más compacto) */
-        min-height: 50px !important;
-      }
-      
-      /* Forzamos texto blanco en la cabecera celeste */
-      .n8n-chat-widget-header-title, 
-      .n8n-chat-widget-header-subtitle { 
-        color: white !important; 
-      }
-
-      /* Estructura para asegurar visibilidad del input en producción */
-      #n8n-chat-render-area, .n8n-chat-widget {
+      /* CORRECCIÓN DEFINITIVA PARA PRODUCCIÓN */
+      #n8n-chat-render-area {
         height: 100% !important;
         display: flex !important;
         flex-direction: column !important;
         overflow: hidden !important;
       }
-      .n8n-chat-widget-messages { flex: 1 !important; }
+
+      /* Fuerza al widget a no "aplastar" el input field */
+      .n8n-chat-widget {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+      }
+
+      .n8n-chat-widget-messages {
+        flex: 1 !important;
+        height: auto !important;
+      }
+
+      /* CABECERA CELESTE ESTILIZADA */
+      .n8n-chat-widget-header {
+        background-color: #3b82f6 !important;
+        padding: 8px 16px !important; /* Más delgado para "subirlo" */
+        min-height: 50px !important;
+      }
       
-      :root { --n8n-chat-primary-color: #3b82f6; }
+      .n8n-chat-widget-header-title, .n8n-chat-widget-header-subtitle { 
+        color: white !important; 
+      }
+
+      :root {
+        --n8n-chat-primary-color: #3b82f6;
+      }
     </style>
   </head>
   <body>
