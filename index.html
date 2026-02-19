@@ -6,7 +6,6 @@
     <title>Alcázar de Salamanca</title>
     
     <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
-    
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap" rel="stylesheet" />
@@ -29,42 +28,31 @@
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
 
-      /* SOLUCIÓN FINAL VERCEL: Recupera el input y quita el footer trabado */
-      
-      /* 1. Ocultamos el footer para ganar el espacio que necesita el input */
-      .n8n-chat-widget-footer {
-        display: none !important;
-        height: 0 !important;
-        padding: 0 !important;
-      }
-
-      /* 2. Forzamos la aparición del cuadro de texto en la base */
-      .n8n-chat-widget-input {
-        display: flex !important;
-        visibility: visible !important;
-        min-height: 80px !important; /* Altura garantizada para escribir */
-        background-color: white !important;
-        border-top: 1px solid #e2e8f0 !important;
-      }
-
-      /* 3. Estabilizamos la altura del widget */
-      #n8n-chat-render-area, .n8n-chat-widget {
-        height: 100% !important;
-        display: flex !important;
-        flex-direction: column !important;
+      /* SOLUCIÓN FINAL VERCEL: Evita que el input desaparezca */
+      #n8n-chat-render-area {
+        height: 550px !important; /* Altura física fija para que n8n no se confunda */
+        display: block !important;
         overflow: hidden !important;
       }
 
-      .n8n-chat-widget-messages {
-        flex: 1 !important;
-        height: auto !important;
+      /* Ocultamos el footer que se queda trabado en rojo en tu imagen */
+      .n8n-chat-widget-footer {
+        display: none !important;
+        height: 0 !important;
+      }
+
+      /* Forzamos la visibilidad de la barra de escritura */
+      .n8n-chat-widget-input {
+        display: flex !important;
+        min-height: 70px !important;
+        visibility: visible !important;
+        background: white !important;
       }
 
       /* Cabecera Celeste */
       .n8n-chat-widget-header {
         background-color: #3b82f6 !important;
         padding: 10px 16px !important;
-        min-height: 52px !important;
       }
       .n8n-chat-widget-header-title, .n8n-chat-widget-header-subtitle { color: white !important; }
 
