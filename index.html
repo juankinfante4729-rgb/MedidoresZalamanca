@@ -4,7 +4,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Alcázar de Salamanca</title>
-    
     <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -28,31 +27,42 @@
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
 
-      /* SOLUCIÓN FINAL VERCEL: Evita que el input desaparezca */
-      #n8n-chat-render-area {
-        height: 550px !important; /* Altura física fija para que n8n no se confunda */
-        display: block !important;
-        overflow: hidden !important;
-      }
-
-      /* Ocultamos el footer que se queda trabado en rojo en tu imagen */
+      /* SOLUCIÓN FINAL VERCEL: Recupera el input y quita el footer */
+      
+      /* 1. Ocultamos el pie de página que empuja al input fuera de la pantalla */
       .n8n-chat-widget-footer {
         display: none !important;
         height: 0 !important;
+        padding: 0 !important;
       }
 
-      /* Forzamos la visibilidad de la barra de escritura */
+      /* 2. Forzamos la aparición del cuadro de texto en la base del card */
       .n8n-chat-widget-input {
         display: flex !important;
-        min-height: 70px !important;
         visibility: visible !important;
-        background: white !important;
+        min-height: 85px !important; /* Altura garantizada para escribir */
+        background-color: white !important;
+        border-top: 1px solid #f1f5f9 !important;
       }
 
-      /* Cabecera Celeste */
+      /* 3. Evitamos que el área de mensajes colapse el input */
+      #n8n-chat-render-area, .n8n-chat-widget {
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+      }
+
+      .n8n-chat-widget-messages {
+        flex: 1 !important;
+        height: auto !important;
+      }
+
+      /* CABECERA CELESTE ESTILIZADA */
       .n8n-chat-widget-header {
         background-color: #3b82f6 !important;
         padding: 10px 16px !important;
+        min-height: 52px !important;
       }
       .n8n-chat-widget-header-title, .n8n-chat-widget-header-subtitle { color: white !important; }
 

@@ -22,16 +22,18 @@ export const Login: React.FC = () => {
             mode: 'fullscreen',
             showWelcomeMessage: true,
             title: '¡Hola! 👋', 
-            subtitle: 'En línea',
+            subtitle: 'Atención 24/7',
             style: {
                 primaryColor: '#3b82f6',
                 backgroundColor: '#ffffff',
             },
             i18n: {
-                en: { // Mantenemos el español forzado
-                    title: 'Soporte Administrativo',
+                en: { // Traducción forzada para el sistema
+                    title: '¡Hola! 👋',
+                    subtitle: 'Estamos para ayudarte',
                     placeholder: 'Escribe tu consulta aquí...', 
-                    send: 'Enviar'
+                    send: 'Enviar',
+                    footer: ''
                 }
             }
           });
@@ -54,7 +56,7 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 font-['Inter']">
       <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-[650px] border border-white">
         
         {/* PANEL IZQUIERDO: FOTO AL 60% */}
@@ -65,7 +67,7 @@ export const Login: React.FC = () => {
           <div className="relative z-10">
             <div className="size-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold text-3xl mb-6 border border-white/30">A</div>
             <h1 className="text-4xl font-extrabold leading-tight">Alcázar de <br/>Salamanca</h1>
-            <p className="text-slate-100 mt-2 text-lg font-medium">Gestión de Medidores</p>
+            <p className="text-slate-100 mt-2 text-lg">Gestión de Medidores</p>
           </div>
 
           <div className="relative z-10">
@@ -74,15 +76,14 @@ export const Login: React.FC = () => {
                 className="inline-flex items-center gap-3 py-3 px-8 rounded-2xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all shadow-xl"
              >
                 <span className="material-symbols-outlined">{activeTab === 'login' ? 'support_agent' : 'login'}</span>
-                <span>{activeTab === 'login' ? 'Centro de Ayuda' : 'Volver al Inicio'}</span>
+                <span>{activeTab === 'login' ? 'Centro de Ayuda' : 'Volver al Login'}</span>
              </button>
           </div>
         </div>
 
         {/* PANEL DERECHO: LOGIN AL 40% */}
-        <div className="w-full md:w-[40%] bg-white flex flex-col relative border-l border-slate-50">
+        <div className="w-full md:w-[40%] bg-white flex flex-col items-center justify-center relative border-l border-slate-50">
           
-          {/* VISTA LOGIN */}
           <div className={`absolute inset-0 p-8 flex flex-col justify-center items-center transition-all duration-500 ${activeTab === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             <div className="w-full max-w-[280px]">
                 <h2 className="text-2xl font-extrabold text-slate-800 mb-2 text-center">Bienvenido</h2>
@@ -96,15 +97,15 @@ export const Login: React.FC = () => {
             </div>
           </div>
 
-          {/* VISTA ASISTENTE (ID de fuerza aplicado) */}
+          {/* VISTA ASISTENTE (Recuperando el cuadro de texto en Vercel) */}
           <div className={`absolute inset-0 flex flex-col transition-all duration-500 ${activeTab === 'asistente' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-             <div className="p-3 flex justify-end">
+             <div className="p-3 border-b border-slate-50 flex justify-end">
                 <button onClick={() => setActiveTab('login')} className="p-1 hover:bg-slate-100 rounded-lg">
                     <span className="material-symbols-outlined text-slate-400 text-sm">close</span>
                 </button>
              </div>
-             {/* Este ID activa la altura fija de 550px definida en el index.html */}
-             <div id="n8n-chat-render-area" ref={chatContainerRef} className="bg-white overflow-hidden relative mx-auto w-full"></div>
+             {/* ID para aplicar las reglas de index.html que fuerzan la visibilidad del input en Vercel */}
+             <div id="n8n-chat-render-area" ref={chatContainerRef} className="flex-1 bg-white overflow-hidden relative"></div>
           </div>
 
         </div>
