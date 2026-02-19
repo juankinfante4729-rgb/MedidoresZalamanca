@@ -23,43 +23,36 @@
     </script>
 
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              primary: "#3b82f6", // Restauramos Celeste
-            }
-          }
-        }
-      };
+      tailwind.config = { theme: { extend: { colors: { primary: "#3b82f6" } } } };
     </script>
 
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
 
-      /* SOLUCIÓN FINAL PARA VERCEL */
+      /* SOLUCIÓN FINAL VERCEL: Recupera el input y quita el footer trabado */
       
-      /* 1. Ocultamos el footer que se queda trabado en producción */
+      /* 1. Ocultamos el footer para ganar el espacio que necesita el input */
       .n8n-chat-widget-footer {
         display: none !important;
         height: 0 !important;
         padding: 0 !important;
       }
 
-      /* 2. Forzamos la aparición del cuadro de texto */
+      /* 2. Forzamos la aparición del cuadro de texto en la base */
       .n8n-chat-widget-input {
         display: flex !important;
         visibility: visible !important;
-        min-height: 70px !important;
-        opacity: 1 !important;
+        min-height: 80px !important; /* Altura garantizada para escribir */
         background-color: white !important;
+        border-top: 1px solid #e2e8f0 !important;
       }
 
-      /* 3. Estabilizamos la altura para que no colapse en producción */
+      /* 3. Estabilizamos la altura del widget */
       #n8n-chat-render-area, .n8n-chat-widget {
         height: 100% !important;
         display: flex !important;
         flex-direction: column !important;
+        overflow: hidden !important;
       }
 
       .n8n-chat-widget-messages {
@@ -67,7 +60,7 @@
         height: auto !important;
       }
 
-      /* CABECERA CELESTE COMPACTA */
+      /* Cabecera Celeste */
       .n8n-chat-widget-header {
         background-color: #3b82f6 !important;
         padding: 10px 16px !important;
