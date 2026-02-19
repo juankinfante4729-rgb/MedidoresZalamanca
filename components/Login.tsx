@@ -21,19 +21,26 @@ export const Login: React.FC = () => {
             target: chatContainerRef.current,
             mode: 'fullscreen',
             showWelcomeMessage: true,
-            title: 'Asistente Alcázar',
+            
+            // TRADUCCIÓN FORZADA AL ESPAÑOL
+            title: '¡Hola! 👋', 
             subtitle: 'Atención al Vecino 24/7',
+            footer: 'Alcázar de Salamanca',
+            initialMessages: [
+                'Bienvenido al portal del conjunto.',
+                'Por favor, dime tu número de casa para ayudarte.',
+            ],
             style: {
                 primaryColor: '#3b82f6',
-                userMessageColor: '#3b82f6',
-                botMessageColor: '#f1f5f9',
                 backgroundColor: '#ffffff',
             },
             i18n: {
-                en: {
-                    title: 'Soporte Administrativo',
-                    placeholder: 'Escribe tu consulta aquí...', // Clave para asegurar visibilidad
-                    send: 'Enviar'
+                en: { // Sobrescribimos el diccionario predeterminado de n8n
+                    title: '¡Hola! 👋',
+                    subtitle: 'Estamos para ayudarte',
+                    placeholder: 'Escribe tu consulta aquí...', 
+                    send: 'Enviar',
+                    footer: 'Portal Administrativo'
                 }
             }
           });
@@ -49,25 +56,25 @@ export const Login: React.FC = () => {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+      setError(err.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : 'Error al entrar');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 font-['Inter']">
       <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-[650px] border border-white">
         
-        {/* PANEL IZQUIERDO: Foto Nítida (60%) */}
+        {/* FOTO AL 60% */}
         <div className="hidden md:flex flex-col justify-between w-[60%] bg-slate-900 p-12 text-white relative">
-          <div className="absolute inset-0 bg-cover bg-center opacity-100" style={{ backgroundImage: `url('${HOME_HERO_IMAGE}')` }}></div>
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${HOME_HERO_IMAGE}')` }}></div>
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent"></div>
           
           <div className="relative z-10">
             <div className="size-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold text-3xl mb-6 border border-white/30">A</div>
-            <h1 className="text-4xl font-extrabold leading-tight drop-shadow-xl">Alcázar de <br/>Salamanca</h1>
-            <p className="text-slate-100 mt-2 text-lg font-medium">Gestión de Medidores</p>
+            <h1 className="text-4xl font-extrabold leading-tight">Alcázar de <br/>Salamanca</h1>
+            <p className="text-slate-100 mt-2 text-lg">Gestión de Medidores</p>
           </div>
 
           <div className="relative z-10">
@@ -76,37 +83,34 @@ export const Login: React.FC = () => {
                 className="inline-flex items-center gap-3 py-3 px-8 rounded-2xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all shadow-xl"
              >
                 <span className="material-symbols-outlined">{activeTab === 'login' ? 'support_agent' : 'login'}</span>
-                <span>{activeTab === 'login' ? 'Centro de Ayuda' : 'Volver al Login'}</span>
+                <span>{activeTab === 'login' ? 'Centro de Ayuda' : 'Volver al Inicio'}</span>
              </button>
           </div>
         </div>
 
-        {/* PANEL DERECHO: Formulario Acortado (40%) */}
-        <div className="w-full md:w-[40%] bg-white flex flex-col items-center justify-center relative border-l border-slate-50">
+        {/* FORMULARIO AL 40% */}
+        <div className="w-full md:w-[40%] bg-white flex flex-col relative border-l border-slate-50">
           
-          <div className={`w-full max-w-[320px] px-4 transition-all duration-500 ${activeTab === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            <h2 className="text-2xl font-extrabold text-slate-800 mb-2">Bienvenido</h2>
-            <p className="text-slate-500 text-sm mb-10 font-medium">Accede a tu cuenta</p>
-
-            <form onSubmit={handleLogin} className="space-y-5">
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-primary transition-all text-sm" placeholder="Correo" required />
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-primary transition-all text-sm" placeholder="Contraseña" required />
-                <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-600 transition-all text-sm">
-                    {loading ? "Cargando..." : "Iniciar Sesión"}
-                </button>
-            </form>
+          <div className={`absolute inset-0 p-8 flex flex-col justify-center items-center transition-all duration-500 ${activeTab === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <div className="w-full max-w-[280px]">
+                <h2 className="text-2xl font-extrabold text-slate-800 mb-2 text-center">Bienvenido</h2>
+                <form onSubmit={handleLogin} className="space-y-4">
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-primary outline-none text-sm" placeholder="Correo electrónico" required />
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-primary outline-none text-sm" placeholder="Contraseña" required />
+                    <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-600 transition-all text-sm">
+                        {loading ? "Entrando..." : "Iniciar Sesión"}
+                    </button>
+                </form>
+            </div>
           </div>
 
-          {/* VISTA ASISTENTE (Estructura fija para evitar recortes en Vercel) */}
+          {/* VISTA ASISTENTE: Con ID para aplicar CSS de fuerza de producción */}
           <div className={`absolute inset-0 flex flex-col transition-all duration-500 ${activeTab === 'asistente' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 className="font-bold text-slate-800 text-sm">Asistente Virtual</h3>
-                <button onClick={() => setActiveTab('login')} className="p-2 hover:bg-slate-200 rounded-lg">
-                    <span className="material-symbols-outlined text-slate-600 text-base">close</span>
+             <div className="p-2 border-b border-slate-50 flex justify-end bg-slate-50/50">
+                <button onClick={() => setActiveTab('login')} className="p-1 hover:bg-slate-200 rounded-lg">
+                    <span className="material-symbols-outlined text-slate-400 text-sm">close</span>
                 </button>
              </div>
-             
-             {/* El ID 'n8n-chat-render-area' activa el CSS del index.html para forzar la visibilidad del input */}
              <div id="n8n-chat-render-area" ref={chatContainerRef} className="flex-1 bg-white overflow-hidden relative"></div>
           </div>
 

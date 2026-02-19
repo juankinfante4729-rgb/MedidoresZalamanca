@@ -27,8 +27,7 @@
         theme: {
           extend: {
             colors: {
-              // Recuperamos el color CELESTE para botones y barras
-              primary: "#3b82f6", 
+              primary: "#3b82f6", // Celeste Alcázar
             }
           }
         }
@@ -38,23 +37,29 @@
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
 
-      /* SOLUCIÓN AL INPUT DESAPARECIDO EN PRODUCCIÓN */
-      #n8n-chat-render-area {
+      /* CORRECCIÓN DE COLOR Y ALTURA DE CABECERA */
+      .n8n-chat-widget-header {
+        background-color: #3b82f6 !important; /* Forzamos Celeste */
+        padding: 8px 16px !important; /* Subimos el contenido (más compacto) */
+        min-height: 50px !important;
+      }
+      
+      /* Forzamos texto blanco en la cabecera celeste */
+      .n8n-chat-widget-header-title, 
+      .n8n-chat-widget-header-subtitle { 
+        color: white !important; 
+      }
+
+      /* Estructura para asegurar visibilidad del input en producción */
+      #n8n-chat-render-area, .n8n-chat-widget {
         height: 100% !important;
         display: flex !important;
         flex-direction: column !important;
+        overflow: hidden !important;
       }
-
-      /* Forzamos que el área de entrada de texto no se colapse */
-      .n8n-chat-widget {
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100% !important;
-      }
-
-      :root {
-        --n8n-chat-primary-color: #3b82f6;
-      }
+      .n8n-chat-widget-messages { flex: 1 !important; }
+      
+      :root { --n8n-chat-primary-color: #3b82f6; }
     </style>
   </head>
   <body>
