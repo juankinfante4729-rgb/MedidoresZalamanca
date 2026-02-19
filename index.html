@@ -23,30 +23,39 @@
     </script>
 
     <script>
-      tailwind.config = { theme: { extend: { colors: { primary: "#3b82f6" } } } };
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#3b82f6", // Restauramos Celeste
+            }
+          }
+        }
+      };
     </script>
 
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
 
-      /* SOLUCIÓN PARA PRODUCCIÓN (VERCEL) */
+      /* SOLUCIÓN FINAL PARA VERCEL */
       
-      /* 1. Ocultamos el pie de página que se queda trabado en rojo */
+      /* 1. Ocultamos el footer que se queda trabado en producción */
       .n8n-chat-widget-footer {
         display: none !important;
         height: 0 !important;
         padding: 0 !important;
       }
 
-      /* 2. Forzamos que el cuadro de texto aparezca sí o sí */
+      /* 2. Forzamos la aparición del cuadro de texto */
       .n8n-chat-widget-input {
         display: flex !important;
         visibility: visible !important;
         min-height: 70px !important;
         opacity: 1 !important;
+        background-color: white !important;
       }
 
-      /* 3. Ajustamos el contenedor para que no expulse al input */
+      /* 3. Estabilizamos la altura para que no colapse en producción */
       #n8n-chat-render-area, .n8n-chat-widget {
         height: 100% !important;
         display: flex !important;
@@ -58,11 +67,11 @@
         height: auto !important;
       }
 
-      /* Cabecera Celeste */
+      /* CABECERA CELESTE COMPACTA */
       .n8n-chat-widget-header {
         background-color: #3b82f6 !important;
-        padding: 8px 16px !important;
-        min-height: 50px !important;
+        padding: 10px 16px !important;
+        min-height: 52px !important;
       }
       .n8n-chat-widget-header-title, .n8n-chat-widget-header-subtitle { color: white !important; }
 

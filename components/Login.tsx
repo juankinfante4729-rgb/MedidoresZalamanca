@@ -21,16 +21,24 @@ export const Login: React.FC = () => {
             target: chatContainerRef.current,
             mode: 'fullscreen',
             showWelcomeMessage: true,
+            
+            // ESPAÑOL SIEMPRE
             title: '¡Hola! 👋', 
             subtitle: 'En línea',
+            footer: '',
+            initialMessages: [
+                'Bienvenido al portal del conjunto.',
+                'Dime tu número de casa para consultar tus pendientes.',
+                '¿En qué puedo ayudarte hoy?'
+            ],
             style: {
                 primaryColor: '#3b82f6',
                 backgroundColor: '#ffffff',
             },
             i18n: {
-                en: { // Traducción forzada para el sistema
+                en: { // Forzamos español en los textos base del widget
                     title: '¡Hola! 👋',
-                    subtitle: 'Estamos para ayudarte',
+                    subtitle: 'En línea',
                     placeholder: 'Escribe tu consulta aquí...', 
                     send: 'Enviar'
                 }
@@ -48,7 +56,7 @@ export const Login: React.FC = () => {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (err: any) {
-      setError(err.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : 'Error al entrar');
+      setError(err.message === 'Invalid login credentials' ? 'Credenciales incorrectas' : 'Error al entrar');
     } finally {
       setLoading(false);
     }
@@ -83,25 +91,27 @@ export const Login: React.FC = () => {
         {/* PANEL DERECHO: LOGIN AL 40% */}
         <div className="w-full md:w-[40%] bg-white flex flex-col items-center justify-center relative border-l border-slate-50">
           
-          <div className={`w-full max-w-[280px] transition-all duration-500 ${activeTab === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            <h2 className="text-2xl font-extrabold text-slate-800 mb-2 text-center">Bienvenido</h2>
-            <form onSubmit={handleLogin} className="space-y-4">
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-primary outline-none text-sm" placeholder="Correo electrónico" required />
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-primary outline-none text-sm" placeholder="Contraseña" required />
-                <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-600 transition-all text-sm">
-                    {loading ? "Entrando..." : "Iniciar Sesión"}
-                </button>
-            </form>
+          <div className={`absolute inset-0 p-8 flex flex-col justify-center items-center transition-all duration-500 ${activeTab === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <div className="w-full max-w-[280px]">
+                <h2 className="text-2xl font-extrabold text-slate-800 mb-2 text-center">Bienvenido</h2>
+                <form onSubmit={handleLogin} className="space-y-4">
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-primary outline-none text-sm" placeholder="Correo" required />
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-primary outline-none text-sm" placeholder="Contraseña" required />
+                    <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-600 transition-all text-sm">
+                        {loading ? "Entrando..." : "Iniciar Sesión"}
+                    </button>
+                </form>
+            </div>
           </div>
 
-          {/* VISTA ASISTENTE (ID de fuerza aplicado) */}
+          {/* VISTA ASISTENTE: Con el ID que activa las reglas de index.html */}
           <div className={`absolute inset-0 flex flex-col transition-all duration-500 ${activeTab === 'asistente' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
              <div className="p-3 border-b border-slate-50 flex justify-end">
                 <button onClick={() => setActiveTab('login')} className="p-1 hover:bg-slate-100 rounded-lg">
                     <span className="material-symbols-outlined text-slate-400 text-sm">close</span>
                 </button>
              </div>
-             {/* Este ID activa las reglas del index.html para producción */}
+             {/* ID crítico para el CSS de fuerza de producción */}
              <div id="n8n-chat-render-area" ref={chatContainerRef} className="flex-1 bg-white overflow-hidden relative"></div>
           </div>
 
