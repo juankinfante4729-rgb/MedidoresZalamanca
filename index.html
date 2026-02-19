@@ -27,7 +27,7 @@
         theme: {
           extend: {
             colors: {
-              // Color celeste restaurado para todo el sitio
+              // Color celeste para barras de progreso y botones
               primary: "#3b82f6", 
             }
           }
@@ -38,21 +38,15 @@
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
 
-      /* CORRECCIÓN DEFINITIVA PARA PRODUCCIÓN */
-      #n8n-chat-render-area {
+      /* CORRECCIÓN CRÍTICA PARA VERCEL: Asegura que el input no desaparezca */
+      #n8n-chat-render-area, .n8n-chat-widget {
         height: 100% !important;
         display: flex !important;
         flex-direction: column !important;
         overflow: hidden !important;
       }
 
-      /* Fuerza al widget a no "aplastar" el input field */
-      .n8n-chat-widget {
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100% !important;
-      }
-
+      /* Permite que los mensajes ocupen el espacio pero dejen sitio al input en la base */
       .n8n-chat-widget-messages {
         flex: 1 !important;
         height: auto !important;
@@ -61,7 +55,7 @@
       /* CABECERA CELESTE ESTILIZADA */
       .n8n-chat-widget-header {
         background-color: #3b82f6 !important;
-        padding: 8px 16px !important; /* Más delgado para "subirlo" */
+        padding: 8px 16px !important; /* Más delgado para mejor visualización */
         min-height: 50px !important;
       }
       
