@@ -21,30 +21,27 @@ export const Login: React.FC = () => {
             target: chatContainerRef.current,
             mode: 'fullscreen',
             showWelcomeMessage: true,
-            
-            // TEXTOS EN ESPAÑOL
             title: '¡Hola! 👋', 
             subtitle: 'Atención al Vecino 24/7',
-            footer: 'Alcázar de Salamanca',
+            // Eliminamos el footer de aquí para que no estorbe al input en producción
             initialMessages: [
                 'Bienvenido al portal del conjunto.',
-                'Dime tu número de casa para consultar tus pendientes.',
+                'Dime tu número de casa para ayudarte.',
             ],
             style: {
                 primaryColor: '#3b82f6',
                 backgroundColor: '#ffffff',
             },
             i18n: {
-                en: { // Sobrescribimos etiquetas internas para asegurar español
-                    title: '¡Hola! 👋',
-                    subtitle: 'Estamos para ayudarte',
-                    placeholder: 'Escribe tu consulta aquí...', // Clave para la barra de escritura
+                en: { // Sobrescribimos el idioma base para español total
+                    title: 'Soporte Administrativo',
+                    placeholder: 'Escribe tu consulta aquí...', 
                     send: 'Enviar',
-                    footer: 'Portal Administrativo'
+                    footer: '' // Dejamos vacío para ganar espacio
                 }
             }
           });
-        }).catch(err => console.error("Error cargando asistente:", err));
+        }).catch(err => console.error(err));
     }
   }, [activeTab]);
 
@@ -66,7 +63,7 @@ export const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 font-['Inter']">
       <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row h-[650px] border border-white">
         
-        {/* PANEL IZQUIERDO: FOTO AL 60% */}
+        {/* PANEL IZQUIERDO: FOTO NÍTIDA AL 60% */}
         <div className="hidden md:flex flex-col justify-between w-[60%] bg-slate-900 p-12 text-white relative">
           <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${HOME_HERO_IMAGE}')` }}></div>
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent"></div>
@@ -74,7 +71,7 @@ export const Login: React.FC = () => {
           <div className="relative z-10">
             <div className="size-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold text-3xl mb-6 border border-white/30">A</div>
             <h1 className="text-4xl font-extrabold leading-tight">Alcázar de <br/>Salamanca</h1>
-            <p className="text-slate-100 mt-2 text-lg font-medium">Gestión de Medidores</p>
+            <p className="text-slate-100 mt-2 text-lg">Gestión de Medidores</p>
           </div>
 
           <div className="relative z-10">
@@ -93,8 +90,6 @@ export const Login: React.FC = () => {
           
           <div className={`w-full max-w-[280px] transition-all duration-500 ${activeTab === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             <h2 className="text-2xl font-extrabold text-slate-800 mb-2 text-center">Bienvenido</h2>
-            <p className="text-slate-400 text-xs mb-8 text-center uppercase tracking-widest font-bold">Acceso Administrativo</p>
-
             <form onSubmit={handleLogin} className="space-y-4">
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-primary outline-none text-sm" placeholder="Correo electrónico" required />
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-primary outline-none text-sm" placeholder="Contraseña" required />
@@ -104,14 +99,14 @@ export const Login: React.FC = () => {
             </form>
           </div>
 
-          {/* VISTA ASISTENTE (Estructura forzada para Vercel) */}
+          {/* VISTA ASISTENTE: Con ID para aplicar las reglas de fuerza de producción */}
           <div className={`absolute inset-0 flex flex-col transition-all duration-500 ${activeTab === 'asistente' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-             <div className="p-2 border-b border-slate-50 flex justify-end bg-slate-50/50">
-                <button onClick={() => setActiveTab('login')} className="p-1 hover:bg-slate-200 rounded-lg">
+             <div className="p-3 border-b border-slate-50 flex justify-end">
+                <button onClick={() => setActiveTab('login')} className="p-1 hover:bg-slate-100 rounded-lg">
                     <span className="material-symbols-outlined text-slate-400 text-sm">close</span>
                 </button>
              </div>
-             {/* El ID 'n8n-chat-render-area' activa las reglas de fuerza de index.html */}
+             {/* Este ID 'n8n-chat-render-area' activa el CSS del index.html para producción */}
              <div id="n8n-chat-render-area" ref={chatContainerRef} className="flex-1 bg-white overflow-hidden relative"></div>
           </div>
 

@@ -6,7 +6,6 @@
     <title>Alcázar de Salamanca</title>
     
     <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
-    
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap" rel="stylesheet" />
@@ -26,10 +25,7 @@
       tailwind.config = {
         theme: {
           extend: {
-            colors: {
-              // Color celeste para barras de progreso y botones
-              primary: "#3b82f6", 
-            }
+            colors: { primary: "#3b82f6" } // Celeste original
           }
         }
       };
@@ -38,7 +34,7 @@
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
 
-      /* CORRECCIÓN CRÍTICA PARA VERCEL: Asegura que el input no desaparezca */
+      /* SOLUCIÓN PARA VERCEL: Recupera el input oculto */
       #n8n-chat-render-area, .n8n-chat-widget {
         height: 100% !important;
         display: flex !important;
@@ -46,26 +42,29 @@
         overflow: hidden !important;
       }
 
-      /* Permite que los mensajes ocupen el espacio pero dejen sitio al input en la base */
+      /* Obliga a los mensajes a dejar espacio al input field */
       .n8n-chat-widget-messages {
-        flex: 1 !important;
+        flex: 1 1 auto !important;
         height: auto !important;
       }
 
-      /* CABECERA CELESTE ESTILIZADA */
-      .n8n-chat-widget-header {
-        background-color: #3b82f6 !important;
-        padding: 8px 16px !important; /* Más delgado para mejor visualización */
-        min-height: 50px !important;
-      }
-      
-      .n8n-chat-widget-header-title, .n8n-chat-widget-header-subtitle { 
-        color: white !important; 
+      /* Asegura que el área de escritura siempre sea visible */
+      .n8n-chat-widget-input {
+        display: flex !important;
+        min-height: 60px !important;
+        background: white !important;
+        border-top: 1px solid #f1f5f9 !important;
       }
 
-      :root {
-        --n8n-chat-primary-color: #3b82f6;
+      /* Estilo del Header Celeste */
+      .n8n-chat-widget-header {
+        background-color: #3b82f6 !important;
+        padding: 8px 16px !important;
+        min-height: 50px !important;
       }
+      .n8n-chat-widget-header-title, .n8n-chat-widget-header-subtitle { color: white !important; }
+
+      :root { --n8n-chat-primary-color: #3b82f6; }
     </style>
   </head>
   <body>
