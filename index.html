@@ -4,10 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Alcázar de Salamanca</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+    
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap" rel="stylesheet" />
     
     <script type="importmap">
     {
@@ -25,7 +27,7 @@
         theme: {
           extend: {
             colors: {
-              // Restauramos el color celeste para barras de progreso y botones
+              // Restauramos el color CELESTE para botones y barras
               primary: "#3b82f6", 
             }
           }
@@ -35,8 +37,24 @@
 
     <style>
       body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; }
-      #n8n-chat-container { height: 100% !important; display: flex !important; flex-direction: column !important; }
-      :root { --n8n-chat-primary-color: #3b82f6; }
+
+      /* SOLUCIÓN AL INPUT DESAPARECIDO EN PRODUCCIÓN */
+      #n8n-chat-render-area {
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+
+      /* Forzamos que el área de entrada de texto no se colapse */
+      .n8n-chat-widget {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+      }
+
+      :root {
+        --n8n-chat-primary-color: #3b82f6;
+      }
     </style>
   </head>
   <body>
