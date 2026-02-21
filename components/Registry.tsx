@@ -386,9 +386,9 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
 
               <button
                 onClick={generatePendingOnlyReport}
-                className="flex items-center gap-2 text-white bg-red-600 hover:bg-red-700 font-bold text-sm transition-colors px-4 py-2 rounded-xl border border-red-600 shadow-sm"
+                className="flex items-center gap-2 text-[#e11d48] bg-[#fff1f2] hover:bg-[#ffe4e6] font-bold text-sm transition-all px-4 py-2 rounded-xl border border-[#fecdd3] shadow-sm hover:shadow-md"
               >
-                <span className="material-symbols-outlined text-lg">report_problem</span>
+                <span className="material-symbols-outlined text-lg">warning</span>
                 Generar Reporte SOLO Pendientes
               </button>
             </div>
@@ -411,10 +411,10 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
                       navigator.clipboard.writeText(message);
                       alert('📝 Copiado: Mensaje de recordatorio listo para pegar en WhatsApp.');
                     }}
-                    className="size-9 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group/wa"
+                    className="size-7 rounded-full bg-blue-50 text-primary flex items-center justify-center border border-blue-100 shadow-sm hover:bg-primary hover:text-white hover:scale-110 active:scale-95 transition-all group/wa"
                     title="Copiar recordatorio para WhatsApp"
                   >
-                    <span className="material-symbols-outlined text-[18px] filled">content_copy</span>
+                    <span className="material-symbols-outlined text-[15px] filled">content_copy</span>
                   </button>
                 )}
                 {house.isConstructora && (
