@@ -27,7 +27,7 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
   const getStage = (houseNumber: string) => {
     const num = parseInt(houseNumber, 10);
     if (isNaN(num)) return 'Etapa 4'; // Fallback
-    
+
     if (num <= 34) return 'Etapa 1';
     if (num <= 62) return 'Etapa 2';
     if (num <= 88) return 'Etapa 3';
@@ -45,7 +45,7 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
   };
 
   const toggleDocFilter = (docId: string) => {
-    setSelectedDocFilters(prev => 
+    setSelectedDocFilters(prev =>
       prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
     );
   };
@@ -69,7 +69,7 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
     if (selectedDocFilters.length > 0) {
       // Las unidades de constructora no suelen tener seguimiento documental detallado igual que los copropietarios
       if (h.isConstructora && !isAdministrationView) return false;
-      const hasPendingDoc = h.documents.some(d => 
+      const hasPendingDoc = h.documents.some(d =>
         selectedDocFilters.includes(d.id) && !d.isSubmitted
       );
       if (!hasPendingDoc) return false;
@@ -89,7 +89,7 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
     doc.setFontSize(18);
     doc.setTextColor(19, 127, 236);
     doc.text("Reporte de Seguimiento Documental", 14, 20);
-    
+
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text("Alcázar de Salamanca - Gestión de Medidores Individuales", 14, 26);
@@ -107,7 +107,7 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
         const marker = d.isSubmitted ? "DONE:" : "TODO:";
         return `${marker}${d.name}`;
       }).join('\n');
-      
+
       const ownerLabel = h.livesAbroad ? `${h.ownerName} (EXTERIOR)` : h.ownerName;
 
       return [
@@ -124,18 +124,18 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
       body: tableData,
       theme: 'grid',
       headStyles: { fillColor: [19, 127, 236], fontSize: 8, fontStyle: 'bold', halign: 'center', cellPadding: 2 },
-      styles: { fontSize: 6.5, cellPadding: 1.5, valign: 'middle', lineWidth: 0.1, lineColor: [220, 220, 220] }, 
-      columnStyles: { 
-        0: { cellWidth: 10, halign: 'center', fontStyle: 'bold' }, 
-        1: { cellWidth: 45 }, 
+      styles: { fontSize: 6.5, cellPadding: 1.5, valign: 'middle', lineWidth: 0.1, lineColor: [220, 220, 220] },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 45 },
         2: { cellWidth: 15, halign: 'center' },
-        3: { cellWidth: 110, minCellHeight: 12 } 
+        3: { cellWidth: 110, minCellHeight: 12 }
       },
       margin: { left: 14, right: 14 },
       alternateRowStyles: { fillColor: [253, 253, 253] },
       willDrawCell: (data) => {
         if (data.section === 'body' && data.column.index === 3) {
-            data.cell.text = [];
+          data.cell.text = [];
         }
       },
       didDrawCell: (data) => {
@@ -144,31 +144,31 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
           const lines = rawText.split('\n').filter(l => l.trim());
           const half = Math.ceil(lines.length / 2);
           const colWidth = data.cell.width / 2;
-          
+
           lines.forEach((line, index) => {
             const isSecondCol = index >= half;
             const rowIndex = isSecondCol ? index - half : index;
-            
+
             const startX = data.cell.x + 3;
             const offsetX = isSecondCol ? colWidth : 0;
-            const startY = data.cell.y + 4.5 + (rowIndex * 3.8); 
+            const startY = data.cell.y + 4.5 + (rowIndex * 3.8);
 
             const isDone = line.startsWith("DONE:");
             const cleanLine = line.replace("DONE:", "").replace("TODO:", "");
-            
+
             doc.setFontSize(6.5);
             doc.setFont("helvetica", "normal");
-            
+
             if (isDone) {
-              doc.setFillColor(34, 197, 94); 
+              doc.setFillColor(34, 197, 94);
               doc.circle(startX + offsetX + 0.8, startY - 0.8, 0.6, 'F');
               doc.setTextColor(34, 197, 94);
             } else {
-              doc.setFillColor(239, 68, 68); 
+              doc.setFillColor(239, 68, 68);
               doc.circle(startX + offsetX + 0.8, startY - 0.8, 0.6, 'F');
               doc.setTextColor(239, 68, 68);
             }
-            
+
             doc.text(cleanLine, startX + offsetX + 3.5, startY);
           });
         }
@@ -181,17 +181,17 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
       doc.setTextColor(19, 127, 236);
       doc.setFont("helvetica", "bold");
       doc.text("RESUMEN DE FALTANTES POR TIPO:", 14, finalY);
-      
+
       doc.setFontSize(7.5);
       doc.setTextColor(100);
       doc.setFont("helvetica", "normal");
-      
+
       let currentY = finalY + 8;
       docTypes.forEach((docType, index) => {
-        const totalMissing = housesForReport.filter(h => 
+        const totalMissing = housesForReport.filter(h =>
           h.documents.find(d => d.id === docType.id && !d.isSubmitted)
         ).length;
-        
+
         const col = index % 2 === 0 ? 14 : 105;
         if (index % 2 !== 0) currentY -= 5;
 
@@ -213,36 +213,129 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
     doc.save(`Reporte_Seguimiento_${now.toISOString().split('T')[0]}.pdf`);
   };
 
+  const generatePendingOnlyReport = () => {
+    const doc = new jsPDF();
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+    const housesForReport = filteredHouses.filter(h => !h.isConstructora && h.progress < 100);
+
+    doc.setFontSize(18);
+    doc.setTextColor(19, 127, 236);
+    doc.text("Reporte de Documentos PENDIENTES", 14, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Alcázar de Salamanca - Pendientes por residente", 14, 26);
+    doc.text(`Generado el ${dateStr} a las ${timeStr}`, 14, 32);
+
+    doc.setFillColor(248, 250, 252);
+    doc.rect(14, 38, 182, 10, 'F');
+    doc.setFontSize(8.5);
+    doc.setTextColor(50);
+    doc.setFont("helvetica", "bold");
+    doc.text(`TOTAL UNIDADES PENDIENTES EN LISTADO: ${housesForReport.length}`, 18, 44.5);
+
+    const tableData = housesForReport.map(h => {
+      const pendingOnly = h.documents
+        .filter(d => !d.isSubmitted)
+        .map(d => `TODO:${d.name}`)
+        .join('\n');
+
+      const ownerLabel = h.livesAbroad ? `${h.ownerName} (EXTERIOR)` : h.ownerName;
+
+      return [
+        h.houseNumber,
+        ownerLabel,
+        getStage(h.houseNumber),
+        pendingOnly
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 52,
+      head: [['Casa', 'Propietario', 'Etapa', 'Documentos Pendientes']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [220, 46, 37], fontSize: 8, fontStyle: 'bold', halign: 'center', cellPadding: 2 },
+      styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle', lineWidth: 0.1, lineColor: [220, 220, 220] },
+      columnStyles: { 0: { cellWidth: 10, halign: 'center', fontStyle: 'bold' }, 1: { cellWidth: 50 }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 110, minCellHeight: 12 } },
+      margin: { left: 14, right: 14 },
+      willDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 3) {
+          data.cell.text = [];
+        }
+      },
+      didDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 3) {
+          const rawText = data.row.raw[3] as string;
+          const lines = rawText.split('\n').filter(l => l.trim());
+          const half = Math.ceil(lines.length / 2);
+          const colWidth = data.cell.width / 2;
+
+          lines.forEach((line, index) => {
+            const isSecondCol = index >= half;
+            const rowIndex = isSecondCol ? index - half : index;
+
+            const startX = data.cell.x + 3;
+            const offsetX = isSecondCol ? colWidth : 0;
+            const startY = data.cell.y + 4.5 + (rowIndex * 3.8);
+
+            const isDone = line.startsWith("DONE:");
+            const cleanLine = line.replace("DONE:", "").replace("TODO:", "");
+
+            doc.setFontSize(6.5);
+            doc.setFont("helvetica", "normal");
+
+            if (isDone) {
+              doc.setFillColor(34, 197, 94);
+              doc.circle(startX + offsetX + 0.8, startY - 0.8, 0.6, 'F');
+              doc.setTextColor(34, 197, 94);
+            } else {
+              doc.setFillColor(239, 68, 68);
+              doc.circle(startX + offsetX + 0.8, startY - 0.8, 0.6, 'F');
+              doc.setTextColor(239, 68, 68);
+            }
+
+            doc.text(cleanLine, startX + offsetX + 3.5, startY);
+          });
+        }
+      }
+    });
+
+    doc.save(`Reporte_Pendientes_${now.toISOString().split('T')[0]}.pdf`);
+  };
+
   return (
     <div className="pt-4 pb-24 md:pb-8 animate-in fade-in duration-500">
       <div className="px-4 md:px-0 space-y-4">
         <h2 className="text-2xl font-semibold text-slate-800">
           {isAdministrationView ? 'Sección Administrativa Exclusiva' : 'Registro de Copropietarios'}
         </h2>
-        
+
         <div className="flex flex-col md:flex-row md:items-center gap-4">
-            <div className="relative flex-1">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                <input type="text" placeholder="Buscar por nombre o casa..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl py-3 pl-11 pr-4 text-sm focus:ring-2 focus:ring-primary shadow-sm outline-none" />
-            </div>
-            
-            <div className="flex gap-2">
-                <button 
-                    onClick={() => setFilterAbroad(!filterAbroad)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${filterAbroad ? 'bg-blue-600 text-white border-blue-700 shadow-md' : 'bg-white text-slate-600 border-gray-200 hover:border-blue-200'}`}
-                >
-                    <span className={`material-symbols-outlined text-[20px] ${filterAbroad ? 'filled' : ''}`}>public</span>
-                    Residentes Exterior
-                </button>
-                <button 
-                    onClick={() => setFilterConstructora(!filterConstructora)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${filterConstructora ? 'bg-slate-700 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-gray-200 hover:border-slate-300'}`}
-                >
-                    <span className={`material-symbols-outlined text-[20px] ${filterConstructora ? 'filled' : ''}`}>domain</span>
-                    Unidades Constructora
-                </button>
-            </div>
+          <div className="relative flex-1">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+            <input type="text" placeholder="Buscar por nombre o casa..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white border border-gray-200 rounded-xl py-3 pl-11 pr-4 text-sm focus:ring-2 focus:ring-primary shadow-sm outline-none" />
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFilterAbroad(!filterAbroad)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${filterAbroad ? 'bg-blue-600 text-white border-blue-700 shadow-md' : 'bg-white text-slate-600 border-gray-200 hover:border-blue-200'}`}
+            >
+              <span className={`material-symbols-outlined text-[20px] ${filterAbroad ? 'filled' : ''}`}>public</span>
+              Residentes Exterior
+            </button>
+            <button
+              onClick={() => setFilterConstructora(!filterConstructora)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all ${filterConstructora ? 'bg-slate-700 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-gray-200 hover:border-slate-300'}`}
+            >
+              <span className={`material-symbols-outlined text-[20px] ${filterConstructora ? 'filled' : ''}`}>domain</span>
+              Unidades Constructora
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -263,11 +356,10 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
                 <button
                   key={doc.id}
                   onClick={() => toggleDocFilter(doc.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
-                    selectedDocFilters.includes(doc.id)
-                      ? 'bg-orange-500 text-white border-orange-600 shadow-sm'
-                      : 'bg-white text-slate-500 border-gray-200 hover:border-orange-300'
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${selectedDocFilters.includes(doc.id)
+                    ? 'bg-orange-500 text-white border-orange-600 shadow-sm'
+                    : 'bg-white text-slate-500 border-gray-200 hover:border-orange-300'
+                    }`}
                 >
                   <span className={`material-symbols-outlined text-[16px] ${selectedDocFilters.includes(doc.id) ? 'text-white' : 'text-slate-400'}`}>{doc.icon}</span>
                   {doc.name}
@@ -281,76 +373,102 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
 
       <div className="px-4 md:px-0 mt-8">
         <div className="flex items-center justify-between mb-6">
-           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Resultados: {filteredHouses.length} unidades</span>
-           {!isAdministrationView && (
-             <button 
-              onClick={generatePendingReport}
-              className="flex items-center gap-2 text-primary hover:text-blue-700 font-bold text-sm transition-colors bg-white px-4 py-2 rounded-xl border border-blue-100 shadow-sm hover:shadow-md"
-             >
-               <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
-               Generar Reporte PDF Limpio
-             </button>
-           )}
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Resultados: {filteredHouses.length} unidades</span>
+          {!isAdministrationView && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={generatePendingReport}
+                className="flex items-center gap-2 text-primary hover:text-blue-700 font-bold text-sm transition-colors bg-white px-4 py-2 rounded-xl border border-blue-100 shadow-sm hover:shadow-md"
+              >
+                <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
+                Generar Reporte PDF Limpio
+              </button>
+
+              <button
+                onClick={generatePendingOnlyReport}
+                className="flex items-center gap-2 text-white bg-red-600 hover:bg-red-700 font-bold text-sm transition-colors px-4 py-2 rounded-xl border border-red-600 shadow-sm"
+              >
+                <span className="material-symbols-outlined text-lg">report_problem</span>
+                Generar Reporte SOLO Pendientes
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredHouses.slice(0, visibleCount).map(house => (
-                <div key={house.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative">
-                    
-                    <div className="absolute top-6 right-6 flex gap-1">
-                      {house.isConstructora && (
-                        <span className="material-symbols-outlined text-orange-500 text-2xl animate-pulse" title="Propiedad Constructora">domain</span>
-                      )}
-                      {house.livesAbroad && (
-                        <span className="material-symbols-outlined text-blue-500 text-2xl" title="Vive en el exterior">public</span>
-                      )}
-                    </div>
+          {filteredHouses.slice(0, visibleCount).map(house => (
+            <div key={house.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative">
 
-                    <div className="mb-5 cursor-pointer" onClick={() => handleHouseSelect(house.id)}>
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider ${house.isConstructora ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-600'}`}>
-                              CASA {house.houseNumber}
-                            </span>
-                            {!isAdministrationView && <span className="text-[10px] text-gray-400 font-medium">{getStage(house.houseNumber)}</span>}
-                        </div>
-                        
-                        <h4 className="text-lg font-bold text-slate-800 group-hover:text-primary transition-colors flex items-center gap-2">
-                          {house.ownerName}
-                        </h4>
-                    </div>
+              <div className="absolute top-6 right-6 flex gap-2 items-center">
+                {!house.isConstructora && house.progress < 100 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const pendingDocs = house.documents.filter(d => !d.isSubmitted);
+                      const docList = pendingDocs.map(d => `• ${d.name}`).join('\n');
+                      const message = `Hola ${house.ownerName}, te saludamos de Alcázar de Salamanca. 👋\n\nTe recordamos que para completar tu registro de la Casa ${house.houseNumber}, aún tenemos pendientes los siguientes documentos:\n\n${docList}\n\nQuedamos atentos a tu entrega para poder finalizar el proceso. ¡Muchas gracias! 😊`;
 
-                    <div className="grid grid-cols-6 gap-2 mb-6">
-                    {house.documents.map((doc, idx) => (
-                        <button 
-                          key={idx} 
-                          disabled={house.isConstructora && !isAdministrationView}
-                          onClick={(e) => { e.stopPropagation(); onUpdateStatus(house.id, doc.id, !doc.isSubmitted); }}
-                          title={doc.name + (doc.isSubmitted ? ' (Completado)' : ' (Pendiente)')}
-                          className={`aspect-square rounded-xl flex items-center justify-center transition-all ${
-                            house.isConstructora && !isAdministrationView
-                              ? 'bg-slate-50 text-slate-200 cursor-default' 
-                              : doc.isSubmitted 
-                                ? 'bg-green-50 text-green-500' 
-                                : 'bg-slate-50 text-slate-300 hover:bg-slate-100'
-                          }`}
-                        >
-                            <span className={`material-symbols-outlined text-xl ${doc.isSubmitted ? 'filled' : ''}`}>{doc.icon}</span>
-                        </button>
-                    ))}
-                    </div>
-                    
-                    {house.isConstructora ? (
-                      <div className="w-full py-4 rounded-2xl bg-[#f7fafc] border border-[#edf2f7] flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined text-[#718096] text-xl">domain</span>
-                        <span className="text-[#718096] text-[12px] font-semibold">Propiedad Constructora</span>
-                      </div>
-                    ) : (
-                      <div className={`w-full py-3.5 rounded-2xl text-center text-[11px] font-bold transition-colors ${house.progress === 100 ? 'bg-green-50 text-green-600' : 'bg-slate-50/80 text-slate-400'}`}>
-                          {house.progress === 100 ? 'COMPLETADO' : `${house.progress}% AVANCE`}
-                      </div>
-                    )}
+                      navigator.clipboard.writeText(message);
+                      alert('📝 Copiado: Mensaje de recordatorio listo para pegar en WhatsApp.');
+                    }}
+                    className="size-9 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all group/wa"
+                    title="Copiar recordatorio para WhatsApp"
+                  >
+                    <span className="material-symbols-outlined text-[18px] filled">content_copy</span>
+                  </button>
+                )}
+                {house.isConstructora && (
+                  <span className="material-symbols-outlined text-orange-500 text-2xl animate-pulse" title="Propiedad Constructora">domain</span>
+                )}
+                {house.livesAbroad && (
+                  <span className="material-symbols-outlined text-blue-500 text-2xl" title="Vive en el exterior">public</span>
+                )}
+              </div>
+
+              <div className="mb-5 cursor-pointer" onClick={() => handleHouseSelect(house.id)}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider ${house.isConstructora ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-600'}`}>
+                    CASA {house.houseNumber}
+                  </span>
+                  {!isAdministrationView && <span className="text-[10px] text-gray-400 font-medium">{getStage(house.houseNumber)}</span>}
                 </div>
-            ))}
+
+                <h4 className="text-lg font-bold text-slate-800 group-hover:text-primary transition-colors flex items-center gap-2">
+                  {house.ownerName}
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-6 gap-2 mb-6">
+                {house.documents.map((doc, idx) => (
+                  <button
+                    key={idx}
+                    disabled={house.isConstructora && !isAdministrationView}
+                    onClick={(e) => { e.stopPropagation(); onUpdateStatus(house.id, doc.id, !doc.isSubmitted); }}
+                    title={doc.name + (doc.isSubmitted ? ' (Completado)' : ' (Pendiente)')}
+                    className={`aspect-square rounded-xl flex items-center justify-center transition-all ${house.isConstructora && !isAdministrationView
+                      ? 'bg-slate-50 text-slate-200 cursor-default'
+                      : doc.isSubmitted
+                        ? 'bg-green-50 text-green-500'
+                        : 'bg-slate-50 text-slate-300 hover:bg-slate-100'
+                      }`}
+                  >
+                    <span className={`material-symbols-outlined text-xl ${doc.isSubmitted ? 'filled' : ''}`}>{doc.icon}</span>
+                  </button>
+                ))}
+              </div>
+
+              {house.isConstructora ? (
+                <div className="w-full py-4 rounded-2xl bg-[#f7fafc] border border-[#edf2f7] flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-[#718096] text-xl">domain</span>
+                  <span className="text-[#718096] text-[12px] font-semibold">Propiedad Constructora</span>
+                </div>
+              ) : (
+                <div className={`w-full py-3.5 rounded-2xl text-center text-[11px] font-bold transition-colors ${house.progress === 100 ? 'bg-green-50 text-green-600' : 'bg-slate-50/80 text-slate-400'}`}>
+                  {house.progress === 100 ? 'COMPLETADO' : `${house.progress}% AVANCE`}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -365,6 +483,6 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
   );
 
   function handleHouseSelect(id: number) {
-      onSelectHouse(id);
+    onSelectHouse(id);
   }
 };
