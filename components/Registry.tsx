@@ -69,9 +69,23 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
     if (selectedDocFilters.length > 0) {
       // Las unidades de constructora no suelen tener seguimiento documental detallado igual que los copropietarios
       if (h.isConstructora && !isAdministrationView) return false;
-      const hasPendingDoc = h.documents.some(d =>
-        selectedDocFilters.includes(d.id) && !d.isSubmitted
-      );
+      const hasPendingDoc = h.documents.some(d => {
+        const isSharedFilter = selectedDocFilters.includes('shared_lien_catastral');
+        const isTarget = selectedDocFilters.includes(d.id) || (isSharedFilter && (d.id === 'lien' || d.id === 'catastral'));
+
+        if (!isTarget) return false;
+        if (d.isSubmitted) return false;
+
+        // Edge case: if we are filtering for the shared slot, 
+        // but the house has EITHER one submitted, then the requirement is MET.
+        if (d.id === 'lien' || d.id === 'catastral') {
+          const hasLien = h.documents.find(doc => doc.id === 'lien')?.isSubmitted;
+          const hasCatastral = h.documents.find(doc => doc.id === 'catastral')?.isSubmitted;
+          if (hasLien || hasCatastral) return false;
+        }
+
+        return true;
+      });
       if (!hasPendingDoc) return false;
     }
 
@@ -103,7 +117,18 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
     doc.text(`TOTAL UNIDADES PENDIENTES EN LISTADO: ${housesForReport.length}`, 18, 44.5);
 
     const tableData = housesForReport.map(h => {
-      const docStatusList = h.documents.map(d => {
+      // Group lien and catastral for the report logic
+      const hDocs = h.documents;
+      const hasLien = hDocs.find(d => d.id === 'lien')?.isSubmitted;
+      const hasCatastral = hDocs.find(d => d.id === 'catastral')?.isSubmitted;
+      const sharedMet = hasLien || hasCatastral;
+
+      const docStatusList = hDocs.filter(d => {
+        // If one of the shared ones is submitted, we only want to show the one that's submitted as "DONE"
+        // If neither is submitted, we show both as "TODO" but they satisfy the same slot.
+        // For simplicity in the list, we'll show them as is, but maybe mark the shared nature.
+        return true;
+      }).map(d => {
         const marker = d.isSubmitted ? "DONE:" : "TODO:";
         return `${marker}${d.name}`;
       }).join('\n');
@@ -188,9 +213,20 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
 
       let currentY = finalY + 8;
       docTypes.forEach((docType, index) => {
-        const totalMissing = housesForReport.filter(h =>
-          h.documents.find(d => d.id === docType.id && !d.isSubmitted)
-        ).length;
+        let totalMissing = 0;
+
+        if (docType.id === 'lien' || docType.id === 'catastral') {
+          // A requirement for the shared slot is missing ONLY if BOTH are missing
+          totalMissing = housesForReport.filter(h => {
+            const hLien = h.documents.find(d => d.id === 'lien');
+            const hCat = h.documents.find(d => d.id === 'catastral');
+            return !hLien?.isSubmitted && !hCat?.isSubmitted;
+          }).length;
+        } else {
+          totalMissing = housesForReport.filter(h =>
+            h.documents.find(d => d.id === docType.id && !d.isSubmitted)
+          ).length;
+        }
 
         const col = index % 2 === 0 ? 14 : 105;
         if (index % 2 !== 0) currentY -= 5;
@@ -205,7 +241,12 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
           doc.circle(col + 0.8, currentY - 0.8, 0.5, 'F');
         }
 
-        doc.text(`${docType.name}: ${totalMissing} unidades pendientes`, col + 4, currentY);
+        let label = `${docType.name}: ${totalMissing} unidades pendientes`;
+        if (docType.id === 'lien' || docType.id === 'catastral') {
+          label = `${docType.name} (u opcional): ${totalMissing} pend.`;
+        }
+
+        doc.text(label, col + 4, currentY);
         currentY += 5;
       });
     }
@@ -352,20 +393,42 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Filtrar por documento PENDIENTE:</span>
             <div className="flex flex-wrap gap-2">
-              {docTypes.map((doc) => (
-                <button
-                  key={doc.id}
-                  onClick={() => toggleDocFilter(doc.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${selectedDocFilters.includes(doc.id)
-                    ? 'bg-orange-500 text-white border-orange-600 shadow-sm'
-                    : 'bg-white text-slate-500 border-gray-200 hover:border-orange-300'
-                    }`}
-                >
-                  <span className={`material-symbols-outlined text-[16px] ${selectedDocFilters.includes(doc.id) ? 'text-white' : 'text-slate-400'}`}>{doc.icon}</span>
-                  {doc.name}
-                  {selectedDocFilters.includes(doc.id) && <span className="material-symbols-outlined text-[14px]">close</span>}
-                </button>
-              ))}
+              {docTypes.map((doc) => {
+                // Merge lien and catastral into a single filter button
+                if (doc.id === 'catastral') return null;
+                const isLien = doc.id === 'lien';
+                const label = isLien ? 'Gravámenes / Catastral' : doc.name;
+                const icon = isLien ? 'gavel' : doc.icon;
+                const filterId = isLien ? 'shared_lien_catastral' : doc.id;
+                const isActive = isLien
+                  ? (selectedDocFilters.includes('lien') || selectedDocFilters.includes('shared_lien_catastral'))
+                  : selectedDocFilters.includes(doc.id);
+
+                return (
+                  <button
+                    key={doc.id}
+                    onClick={() => {
+                      if (isLien) {
+                        setSelectedDocFilters(prev =>
+                          prev.includes('shared_lien_catastral')
+                            ? prev.filter(id => id !== 'shared_lien_catastral')
+                            : [...prev, 'shared_lien_catastral']
+                        );
+                      } else {
+                        toggleDocFilter(doc.id);
+                      }
+                    }}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${isActive
+                      ? 'bg-orange-500 text-white border-orange-600 shadow-sm'
+                      : 'bg-white text-slate-500 border-gray-200 hover:border-orange-300'
+                      }`}
+                  >
+                    <span className={`material-symbols-outlined text-[16px] ${isActive ? 'text-white' : 'text-slate-400'}`}>{icon}</span>
+                    {label}
+                    {isActive && <span className="material-symbols-outlined text-[14px]">close</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -438,23 +501,30 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
                 </h4>
               </div>
 
-              <div className="grid grid-cols-6 gap-2 mb-6">
-                {house.documents.map((doc, idx) => (
-                  <button
-                    key={idx}
-                    disabled={house.isConstructora && !isAdministrationView}
-                    onClick={(e) => { e.stopPropagation(); onUpdateStatus(house.id, doc.id, !doc.isSubmitted); }}
-                    title={doc.name + (doc.isSubmitted ? ' (Completado)' : ' (Pendiente)')}
-                    className={`aspect-square rounded-xl flex items-center justify-center transition-all ${house.isConstructora && !isAdministrationView
-                      ? 'bg-slate-50 text-slate-200 cursor-default'
-                      : doc.isSubmitted
-                        ? 'bg-green-50 text-green-500'
-                        : 'bg-slate-50 text-slate-300 hover:bg-slate-100'
-                      }`}
-                  >
-                    <span className={`material-symbols-outlined text-xl ${doc.isSubmitted ? 'filled' : ''}`}>{doc.icon}</span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-7 gap-1.5 mb-6">
+                {house.documents.map((doc, idx) => {
+                  const isLienOrCatastral = doc.id === 'lien' || doc.id === 'catastral';
+                  const otherId = doc.id === 'lien' ? 'catastral' : 'lien';
+                  const isOtherSubmitted = house.documents.find(d => d.id === otherId)?.isSubmitted;
+                  const isDisabled = (house.isConstructora && !isAdministrationView) || (isLienOrCatastral && isOtherSubmitted);
+
+                  return (
+                    <button
+                      key={idx}
+                      disabled={isDisabled}
+                      onClick={(e) => { e.stopPropagation(); onUpdateStatus(house.id, doc.id, !doc.isSubmitted); }}
+                      title={doc.name + (doc.isSubmitted ? ' (Completado)' : ' (Pendiente)') + (isLienOrCatastral && isOtherSubmitted ? ' (Inactivo por documento alternativo)' : '')}
+                      className={`aspect-square rounded-lg flex items-center justify-center transition-all ${isDisabled
+                        ? 'bg-slate-50 text-slate-200 cursor-default opacity-40'
+                        : doc.isSubmitted
+                          ? 'bg-green-50 text-green-500'
+                          : 'bg-slate-50 text-slate-300 hover:bg-slate-100'
+                        }`}
+                    >
+                      <span className={`material-symbols-outlined text-[18px] ${doc.isSubmitted ? 'filled' : ''}`}>{doc.icon}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               {house.isConstructora ? (

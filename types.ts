@@ -17,7 +17,8 @@ export interface House {
   progress: number; // 0-100
   lastActivity: string;
   isConstructora: boolean; // New field to exclude from KPIs
-  livesAbroad: boolean; 
+  livesAbroad: boolean;
+  imageUrl?: string;
 }
 
 export type ViewState = 'home' | 'dashboard' | 'registry' | 'detail';
@@ -27,6 +28,7 @@ export const REQUIRED_DOCS = [
   { id: 'meter_site', name: 'Foto Sitio Medidor', icon: 'water_drop' },
   { id: 'tax', name: 'Impuesto Predial', icon: 'receipt_long' },
   { id: 'lien', name: 'Cert. Gravámenes', icon: 'gavel' },
+  { id: 'catastral', name: 'Cédula Catastral', icon: 'account_tree' },
   { id: 'id_copy', name: 'Copia Cédula/Pap.', icon: 'badge' },
   { id: 'form', name: 'Formulario Conjunto', icon: 'description' },
 ];

@@ -13,7 +13,7 @@ import { Session } from '@supabase/supabase-js';
 const prepareDocsForSave = (docs: DocStatus[], isConstructora: boolean, livesAbroad: boolean = false) => {
   // Filter out any existing metadata to avoid duplicates
   const cleanDocs = docs.filter(d => d.id !== 'METADATA_IS_CONSTRUCTORA' && d.id !== 'METADATA_LIVES_ABROAD');
-  
+
   // Append metadata
   return [
     ...cleanDocs,
@@ -62,12 +62,12 @@ const App = () => {
 
   // Load data from Supabase
   const loadData = useCallback(async () => {
-    if (!session) return; 
+    if (!session) return;
 
     try {
       setLoading(true);
       setErrorMsg(null);
-      
+
       const { data, error } = await supabase
         .from('houses')
         .select('*')
@@ -79,30 +79,50 @@ const App = () => {
 
       if (data && data.length > 0) {
         const mappedHouses: House[] = data.map((row: any) => {
-           let rawDocuments = row.documents;
-           // Fallback for malformed data
-           if (!rawDocuments || !Array.isArray(rawDocuments) || rawDocuments.length === 0) {
-             rawDocuments = REQUIRED_DOCS.map(d => ({
-               id: d.id,
-               name: d.name,
-               icon: d.icon,
-               isSubmitted: false,
-               status: 'pending'
-             }));
-           }
+          let rawDocuments = row.documents;
+          // Fallback for malformed data
+          if (!rawDocuments || !Array.isArray(rawDocuments) || rawDocuments.length === 0) {
+            rawDocuments = REQUIRED_DOCS.map(d => ({
+              id: d.id,
+              name: d.name,
+              icon: d.icon,
+              isSubmitted: false,
+              status: 'pending'
+            }));
+          }
 
-           const metaDoc = rawDocuments.find((d: any) => d.id === 'METADATA_IS_CONSTRUCTORA');
-           const abroadDoc = rawDocuments.find((d: any) => d.id === 'METADATA_LIVES_ABROAD');
-           
-           const documents = rawDocuments.filter((d: any) => !d.id.startsWith('METADATA_'));
+          const metaDoc = rawDocuments.find((d: any) => d.id === 'METADATA_IS_CONSTRUCTORA');
+          const abroadDoc = rawDocuments.find((d: any) => d.id === 'METADATA_LIVES_ABROAD');
 
-           const submittedCount = documents.filter((d: any) => d.isSubmitted).length;
-           const progress = Math.round((submittedCount / REQUIRED_DOCS.length) * 100);
+          const rawDocsFiltered = rawDocuments.filter((d: any) => !d.id.startsWith('METADATA_'));
 
-           const isConstructora = metaDoc ? metaDoc.isSubmitted : (row.is_constructora || false);
-           const livesAbroad = abroadDoc ? abroadDoc.isSubmitted : false;
+          // Ensure all currently required docs exist (merging with what's in DB)
+          const documents = REQUIRED_DOCS.map(rd => {
+            const existing = rawDocsFiltered.find((d: any) => d.id === rd.id);
+            if (existing) return existing;
+            return {
+              id: rd.id,
+              name: rd.name,
+              icon: rd.icon,
+              isSubmitted: false,
+              status: 'pending'
+            };
+          });
 
-           return {
+          // Logic for either "lien" or "catastral"
+          const hasLien = documents.find((d: any) => d.id === 'lien')?.isSubmitted;
+          const hasCatastral = documents.find((d: any) => d.id === 'catastral')?.isSubmitted;
+
+          const otherSubmittedCount = documents.filter((d: any) => d.isSubmitted && d.id !== 'lien' && d.id !== 'catastral').length;
+          const sharedSlotSubmitted = (hasLien || hasCatastral) ? 1 : 0;
+
+          const totalSlots = REQUIRED_DOCS.length - 1; // lien and catastral share a slot
+          const progress = Math.round(((otherSubmittedCount + sharedSlotSubmitted) / totalSlots) * 100);
+
+          const isConstructora = metaDoc ? metaDoc.isSubmitted : (row.is_constructora || false);
+          const livesAbroad = abroadDoc ? abroadDoc.isSubmitted : false;
+
+          return {
             id: row.id,
             houseNumber: row.house_number,
             ownerName: row.owner_name,
@@ -131,7 +151,7 @@ const App = () => {
         }));
 
         const { error: insertError } = await supabase.from('houses').insert(seedData);
-        
+
         if (insertError) {
           console.error("Error seeding data:", insertError);
           setErrorMsg("No se pudieron cargar los datos. Verifica los permisos de la base de datos.");
@@ -150,7 +170,7 @@ const App = () => {
 
   useEffect(() => {
     if (session) {
-        loadData();
+      loadData();
     }
   }, [session, loadData]);
 
@@ -179,15 +199,15 @@ const App = () => {
         if (!updatedHouse) return;
 
         const docsWithMeta = prepareDocsForSave(updatedHouse.documents, updatedHouse.isConstructora, updatedHouse.livesAbroad);
-        
-        const updates: any = { 
-            documents: docsWithMeta,
-            last_activity: 'Hace un momento',
-            // Update other fields if they changed in the house object (simplification for this demo)
-            owner_name: updatedHouse.ownerName,
-            phone_number: updatedHouse.phoneNumber,
-            house_number: updatedHouse.houseNumber,
-            image_url: updatedHouse.imageUrl
+
+        const updates: any = {
+          documents: docsWithMeta,
+          last_activity: 'Hace un momento',
+          // Update other fields if they changed in the house object (simplification for this demo)
+          owner_name: updatedHouse.ownerName,
+          phone_number: updatedHouse.phoneNumber,
+          house_number: updatedHouse.houseNumber,
+          image_url: updatedHouse.imageUrl
         };
 
         const { error } = await supabase
@@ -208,40 +228,58 @@ const App = () => {
 
   const updateHouseStatus = (houseId: number, docId: string, status: boolean) => {
     updateHouseData(houseId, (prev) => {
-        return prev.map(h => {
-            if (h.id !== houseId) return h;
-            const newDocs = h.documents.map(d => 
-                d.id === docId ? { 
-                    ...d, 
-                    isSubmitted: status,
-                    submissionDate: status ? (d.submissionDate || new Date().toISOString().split('T')[0]) : undefined
-                } : d
-            );
-            const submittedCount = newDocs.filter(d => d.isSubmitted).length;
-            const progress = Math.round((submittedCount / REQUIRED_DOCS.length) * 100);
-            return { ...h, documents: newDocs as any, progress };
+      return prev.map(h => {
+        if (h.id !== houseId) return h;
+        const newDocs = h.documents.map(d => {
+          const isTarget = d.id === docId;
+
+          // Exclusivity logic: if checking one, uncheck the other
+          if (status && docId === 'lien' && d.id === 'catastral') {
+            return { ...d, isSubmitted: false, submissionDate: undefined };
+          }
+          if (status && docId === 'catastral' && d.id === 'lien') {
+            return { ...d, isSubmitted: false, submissionDate: undefined };
+          }
+
+          return isTarget ? {
+            ...d,
+            isSubmitted: status,
+            submissionDate: status ? (d.submissionDate || new Date().toISOString().split('T')[0]) : undefined
+          } : d
         });
+
+        const hasLien = newDocs.find(d => d.id === 'lien')?.isSubmitted;
+        const hasCatastral = newDocs.find(d => d.id === 'catastral')?.isSubmitted;
+
+        const otherSubmittedCount = newDocs.filter(d => d.isSubmitted && d.id !== 'lien' && d.id !== 'catastral').length;
+        const sharedSlotSubmitted = (hasLien || hasCatastral) ? 1 : 0;
+
+        const totalSlots = REQUIRED_DOCS.length - 1;
+        const progress = Math.round(((otherSubmittedCount + sharedSlotSubmitted) / totalSlots) * 100);
+
+        return { ...h, documents: newDocs as any, progress };
+      });
     });
   };
 
   const updateDocDate = (houseId: number, docId: string, date: string) => {
     updateHouseData(houseId, (prev) => {
-        return prev.map(h => {
-            if (h.id !== houseId) return h;
-            const newDocs = h.documents.map(d => 
-                d.id === docId ? { ...d, submissionDate: date } : d
-            );
-            return { ...h, documents: newDocs as any };
-        });
+      return prev.map(h => {
+        if (h.id !== houseId) return h;
+        const newDocs = h.documents.map(d =>
+          d.id === docId ? { ...d, submissionDate: date } : d
+        );
+        return { ...h, documents: newDocs as any };
+      });
     });
   };
 
   const updateHouseInfo = (houseId: number, data: { ownerName: string; phoneNumber: string; houseNumber: string; isConstructora: boolean; livesAbroad: boolean; imageUrl?: string }) => {
     updateHouseData(houseId, (prev) => {
-        return prev.map(h => {
-            if (h.id !== houseId) return h;
-            return { ...h, ...data };
-        });
+      return prev.map(h => {
+        if (h.id !== houseId) return h;
+        return { ...h, ...data };
+      });
     });
   };
 
@@ -265,17 +303,26 @@ const App = () => {
       case 'detail':
         const house = houses.find(h => h.id === selectedHouseId);
         if (!house) return <div>Cargando...</div>;
-        
+
         const activeHouses = houses.filter(h => !h.isConstructora);
-        const totalDocs = activeHouses.length * REQUIRED_DOCS.length;
-        const submittedDocs = activeHouses.reduce((acc, h) => acc + h.documents.filter(d => d.isSubmitted).length, 0);
+        const totalRequiredPerHouse = REQUIRED_DOCS.length - 1;
+        const totalDocs = activeHouses.length * totalRequiredPerHouse;
+
+        const submittedDocs = activeHouses.reduce((acc, h) => {
+          const hasLien = h.documents.find(d => d.id === 'lien')?.isSubmitted;
+          const hasCatastral = h.documents.find(d => d.id === 'catastral')?.isSubmitted;
+          const sharedCount = (hasLien || hasCatastral) ? 1 : 0;
+          const otherCount = h.documents.filter(d => d.isSubmitted && d.id !== 'lien' && d.id !== 'catastral').length;
+          return acc + otherCount + sharedCount;
+        }, 0);
+
         const globalProgress = totalDocs > 0 ? Math.round((submittedDocs / totalDocs) * 100) : 0;
 
         return (
-          <HouseDetail 
-            house={house} 
+          <HouseDetail
+            house={house}
             globalProgress={globalProgress}
-            onBack={() => setView('registry')} 
+            onBack={() => setView('registry')}
             onUpdateStatus={updateHouseStatus}
             onUpdateDate={updateDocDate}
             onUpdateInfo={updateHouseInfo}
@@ -288,33 +335,33 @@ const App = () => {
 
   // 1. Loading Initial Check
   if (initialCheck) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="size-10 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div>
-        </div>
-      );
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="size-10 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   // 2. Show Login if no session
   if (!session) {
-      return <Login />;
+    return <Login />;
   }
 
   // 3. Authenticated App
   return (
     <div className="min-h-screen bg-background-light flex flex-col md:flex-row text-slate-900">
-      
+
       {errorMsg && (
         <div className="fixed top-0 left-0 right-0 z-[60] bg-red-600 text-white px-4 py-3 shadow-lg flex items-center justify-between">
-            <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined bg-white/20 p-1 rounded">warning</span>
-                <div className="text-sm font-medium">
-                    {errorMsg}
-                </div>
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined bg-white/20 p-1 rounded">warning</span>
+            <div className="text-sm font-medium">
+              {errorMsg}
             </div>
-            <button onClick={() => setErrorMsg(null)} className="bg-white/20 hover:bg-white/30 rounded p-1">
-                <span className="material-symbols-outlined text-sm">close</span>
-            </button>
+          </div>
+          <button onClick={() => setErrorMsg(null)} className="bg-white/20 hover:bg-white/30 rounded p-1">
+            <span className="material-symbols-outlined text-sm">close</span>
+          </button>
         </div>
       )}
 
@@ -326,33 +373,30 @@ const App = () => {
             <p className="text-[10px] text-slate-500">Gestión de Medidores</p>
           </div>
         </div>
-        
+
         <nav className="space-y-1 flex-1">
-          <button 
+          <button
             onClick={() => setView('home')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              view === 'home' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'
-            }`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${view === 'home' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'
+              }`}
           >
             <span className={`material-symbols-outlined text-[20px] ${view === 'home' ? 'filled' : ''}`}>home</span>
             Inicio
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setView('registry')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              view === 'registry' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'
-            }`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${view === 'registry' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'
+              }`}
           >
             <span className={`material-symbols-outlined text-[20px] ${view === 'registry' ? 'filled' : ''}`}>description</span>
             Registro y Control
           </button>
 
-          <button 
+          <button
             onClick={() => setView('dashboard')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              view === 'dashboard' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'
-            }`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${view === 'dashboard' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-50'
+              }`}
           >
             <span className={`material-symbols-outlined text-[20px] ${view === 'dashboard' ? 'filled' : ''}`}>bar_chart</span>
             Indicadores
@@ -360,15 +404,15 @@ const App = () => {
         </nav>
 
         <div className="pt-4 border-t border-slate-200 space-y-2">
-           <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border ${isConnected ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
-             <div className={`size-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
-             {isConnected ? 'Sistema en Línea' : 'Desconectado'}
-           </div>
-           
-           <button 
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border ${isConnected ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
+            <div className={`size-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
+            {isConnected ? 'Sistema en Línea' : 'Desconectado'}
+          </div>
+
+          <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
-           >
+          >
             <span className="material-symbols-outlined text-[20px]">logout</span>
             Cerrar Sesión
           </button>
@@ -377,17 +421,17 @@ const App = () => {
 
       <main className="flex-1 h-screen overflow-y-auto relative">
         <header className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-30 px-4 py-3 flex items-center justify-between">
-           <div className="flex items-center gap-2">
-             <div className="size-8 rounded bg-primary flex items-center justify-center text-white font-bold">A</div>
-             <span className="font-bold text-slate-800">Alcázar</span>
-           </div>
-           <button onClick={handleLogout} className="text-gray-500">
-             <span className="material-symbols-outlined">logout</span>
-           </button>
+          <div className="flex items-center gap-2">
+            <div className="size-8 rounded bg-primary flex items-center justify-center text-white font-bold">A</div>
+            <span className="font-bold text-slate-800">Alcázar</span>
+          </div>
+          <button onClick={handleLogout} className="text-gray-500">
+            <span className="material-symbols-outlined">logout</span>
+          </button>
         </header>
 
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
-           {renderContent()}
+          {renderContent()}
         </div>
       </main>
     </div>

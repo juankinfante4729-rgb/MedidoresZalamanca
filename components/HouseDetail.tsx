@@ -19,8 +19,14 @@ export const HouseDetail: React.FC<HouseDetailProps> = ({ house, globalProgress,
     isConstructora: house.isConstructora
   });
 
-  const completedDocsCount = house.documents.filter(d => d.isSubmitted).length;
-  const progress = Math.round((completedDocsCount / house.documents.length) * 100);
+  const hasLien = house.documents.find(d => d.id === 'lien')?.isSubmitted;
+  const hasCatastral = house.documents.find(d => d.id === 'catastral')?.isSubmitted;
+
+  const otherSubmittedCount = house.documents.filter(d => d.isSubmitted && d.id !== 'lien' && d.id !== 'catastral').length;
+  const sharedSlotSubmitted = (hasLien || hasCatastral) ? 1 : 0;
+
+  const totalSlots = REQUIRED_DOCS.length - 1;
+  const progress = Math.round(((otherSubmittedCount + sharedSlotSubmitted) / totalSlots) * 100);
 
 
   const handleSave = () => {
@@ -158,7 +164,7 @@ export const HouseDetail: React.FC<HouseDetailProps> = ({ house, globalProgress,
                   <div className="bg-primary h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
                 </div>
               </div>
-              <p className="text-[10px] text-gray-500 mt-1">{completedDocsCount} de {house.documents.length} Docs</p>
+              <p className="text-[10px] text-gray-500 mt-1">{otherSubmittedCount + sharedSlotSubmitted} de {totalSlots} Requisitos</p>
             </div>
             <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Progreso Global</p>
@@ -186,38 +192,49 @@ export const HouseDetail: React.FC<HouseDetailProps> = ({ house, globalProgress,
           </div>
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
             <div className="divide-y divide-gray-100">
-              {house.documents.map((doc) => (
-                <label key={doc.id} className={`flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors select-none group ${house.isConstructora ? 'opacity-50 pointer-events-none' : ''}`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${doc.isSubmitted ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
-                      <span className="material-symbols-outlined text-xl">{doc.icon}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-slate-700 group-hover:text-primary transition-colors">{doc.name}</span>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] ${doc.isSubmitted ? 'text-emerald-500' : 'text-orange-500'}`}>
-                          {doc.isSubmitted ? 'Entregado:' : 'Pendiente de entrega'}
+              {house.documents.map((doc) => {
+                const isLienOrCatastral = doc.id === 'lien' || doc.id === 'catastral';
+                const otherId = doc.id === 'lien' ? 'catastral' : 'lien';
+                const isOtherSubmitted = house.documents.find(d => d.id === otherId)?.isSubmitted;
+                const isDisabled = (house.isConstructora) || (isLienOrCatastral && isOtherSubmitted);
+
+                return (
+                  <label key={doc.id} className={`flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors select-none group ${(house.isConstructora) ? 'opacity-50 pointer-events-none' : (isLienOrCatastral && isOtherSubmitted) ? 'opacity-40 grayscale pointer-events-none bg-gray-50/50' : ''}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${doc.isSubmitted ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                        <span className="material-symbols-outlined text-xl">{doc.icon}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-slate-700 group-hover:text-primary transition-colors">
+                          {doc.name}
+                          {isLienOrCatastral && isOtherSubmitted && <span className="text-[10px] ml-2 text-gray-400 italic">(Inactivo por doc. alternativo)</span>}
                         </span>
-                        {doc.isSubmitted && (
-                          <input
-                            type="date"
-                            value={doc.submissionDate || ''}
-                            onChange={(e) => onUpdateDate(house.id, doc.id, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-[10px] border-0 bg-transparent p-0 text-gray-500 font-medium focus:ring-0 cursor-pointer hover:text-primary h-4"
-                          />
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] ${doc.isSubmitted ? 'text-emerald-500' : 'text-orange-500'}`}>
+                            {doc.isSubmitted ? 'Entregado:' : 'Pendiente de entrega'}
+                          </span>
+                          {doc.isSubmitted && (
+                            <input
+                              type="date"
+                              value={doc.submissionDate || ''}
+                              onChange={(e) => onUpdateDate(house.id, doc.id, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[10px] border-0 bg-transparent p-0 text-gray-500 font-medium focus:ring-0 cursor-pointer hover:text-primary h-4"
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={doc.isSubmitted}
-                    onChange={(e) => onUpdateStatus(house.id, doc.id, e.target.checked)}
-                    className="checkbox-custom h-6 w-6 rounded border-gray-300 text-primary focus:ring-primary/20 bg-transparent cursor-pointer"
-                  />
-                </label>
-              ))}
+                    <input
+                      type="checkbox"
+                      disabled={isDisabled}
+                      checked={doc.isSubmitted}
+                      onChange={(e) => onUpdateStatus(house.id, doc.id, e.target.checked)}
+                      className="checkbox-custom h-6 w-6 rounded border-gray-300 text-primary focus:ring-primary/20 bg-transparent cursor-pointer disabled:opacity-30"
+                    />
+                  </label>
+                );
+              })}
             </div>
           </div>
         </section>
