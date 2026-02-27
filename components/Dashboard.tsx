@@ -17,6 +17,14 @@ const getHouseSubmittedCount = (h: House) => {
   return otherCount + sharedCount;
 };
 
+const getHousePendingCount = (h: House) => {
+  const hasLien = h.documents.find(d => d.id === 'lien')?.isSubmitted;
+  const hasCatastral = h.documents.find(d => d.id === 'catastral')?.isSubmitted;
+  const sharedSlotPending = (hasLien || hasCatastral) ? 0 : 1;
+  const otherPending = h.documents.filter(d => !d.isSubmitted && d.id !== 'lien' && d.id !== 'catastral').length;
+  return otherPending + sharedSlotPending;
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ houses, onNavigate, onSelectHouse }) => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'incomplete' | 'pending'>('all');
 
@@ -25,7 +33,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ houses, onNavigate, onSele
   const totalActiveHouses = activeHouses.length;
 
   const completedCount = activeHouses.filter(h => h.progress === 100).length;
-  const pendingDocsCount = activeHouses.reduce((acc, h) => acc + h.documents.filter(d => !d.isSubmitted).length, 0);
+  const pendingDocsCount = activeHouses.reduce((acc, h) => acc + getHousePendingCount(h), 0);
   const completionRate = totalActiveHouses > 0 ? Math.round((completedCount / totalActiveHouses) * 100) : 0;
 
   // Counts for Heatmap Legend
