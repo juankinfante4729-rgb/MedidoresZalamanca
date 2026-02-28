@@ -72,7 +72,7 @@ export const PublicAgent: React.FC = () => {
       if (extractedNumber && extractedNumber !== 'null' && !isNaN(Number(extractedNumber))) {
         // Normalize to 3 digits (e.g. "5" -> "005")
         const paddedNumber = extractedNumber.padStart(3, '0');
-        
+
         // 2. Query Supabase
         // Try padded number first
         let { data, error } = await supabase
@@ -83,37 +83,37 @@ export const PublicAgent: React.FC = () => {
 
         // If not found, try exact extracted number
         if (!data && paddedNumber !== extractedNumber) {
-             const { data: dataUnpadded } = await supabase
-              .from('houses')
-              .select('*')
-              .eq('house_number', extractedNumber)
-              .maybeSingle();
-              
-             if (dataUnpadded) {
-                 data = dataUnpadded;
-             }
+          const { data: dataUnpadded } = await supabase
+            .from('houses')
+            .select('*')
+            .eq('house_number', extractedNumber)
+            .maybeSingle();
+
+          if (dataUnpadded) {
+            data = dataUnpadded;
+          }
         }
 
         // Fallback to MOCK_HOUSES if DB returns nothing (e.g. due to RLS or empty DB)
         if (!data) {
-            console.log(`House ${paddedNumber} not found in DB, checking mocks...`);
-            const mockHouse = MOCK_HOUSES.find(h => h.houseNumber === paddedNumber || h.houseNumber === extractedNumber);
-            if (mockHouse) {
-                data = {
-                    id: mockHouse.id,
-                    house_number: mockHouse.houseNumber,
-                    owner_name: mockHouse.ownerName,
-                    phone_number: mockHouse.phoneNumber,
-                    stage: mockHouse.stage,
-                    documents: mockHouse.documents,
-                    last_activity: mockHouse.lastActivity,
-                    is_constructora: mockHouse.isConstructora
-                };
-            }
+          console.log(`House ${paddedNumber} not found in DB, checking mocks...`);
+          const mockHouse = MOCK_HOUSES.find(h => h.houseNumber === paddedNumber || h.houseNumber === extractedNumber);
+          if (mockHouse) {
+            data = {
+              id: mockHouse.id,
+              house_number: mockHouse.houseNumber,
+              owner_name: mockHouse.ownerName,
+              phone_number: mockHouse.phoneNumber,
+              stage: mockHouse.stage,
+              documents: mockHouse.documents,
+              last_activity: mockHouse.lastActivity,
+              is_constructora: mockHouse.isConstructora
+            };
+          }
         }
 
         if (!data) {
-           const notFoundMsg: Message = {
+          const notFoundMsg: Message = {
             id: Date.now().toString() + '_agent',
             text: `Lo siento, no pude encontrar información para la casa número ${extractedNumber}. Por favor verifica el número e inténtalo de nuevo.`,
             sender: 'agent',
@@ -123,20 +123,20 @@ export const PublicAgent: React.FC = () => {
         } else {
           // 3. Analyze documents
           const row = data;
-          
+
           // Clean documents (filter out metadata)
           let documents = row.documents;
           if (!documents || !Array.isArray(documents) || documents.length === 0) {
-             documents = REQUIRED_DOCS.map(d => ({
-               id: d.id,
-               name: d.name,
-               icon: d.icon,
-               isSubmitted: false,
-               status: 'pending'
-             }));
+            documents = REQUIRED_DOCS.map(d => ({
+              id: d.id,
+              name: d.name,
+              icon: d.icon,
+              isSubmitted: false,
+              status: 'pending'
+            }));
           }
           documents = documents.filter((d: any) => !d.id.startsWith('METADATA_'));
-          
+
           // Map to House type
           const house: House = {
             id: row.id,
@@ -145,23 +145,36 @@ export const PublicAgent: React.FC = () => {
             phoneNumber: '', // Hidden for privacy
             stage: 'Foundations', // Hidden/Default
             documents: documents,
-            progress: 0, 
+            progress: 0,
             lastActivity: '',
             isConstructora: false,
-            livesAbroad: false 
+            livesAbroad: false
           };
-          
+
           // Update house object with cleaned docs for display
           const cleanHouse = { ...house, documents };
 
-           const pendingDocs = documents.filter((d: any) => !d.isSubmitted);
-           const approvedDocs = documents.filter((d: any) => d.status === 'approved');
-           
-           // Generate response with Gemini
-           const contextPrompt = `
+          const hasLien = documents.find((d: any) => d.id === 'lien')?.isSubmitted;
+          const hasCatastral = documents.find((d: any) => d.id === 'catastral')?.isSubmitted;
+          const sharedMet = hasLien || hasCatastral;
+
+          const pendingDocs = documents.filter((d: any) => {
+            if (d.id === 'lien' || d.id === 'catastral') return false;
+            return !d.isSubmitted;
+          });
+
+          const pendingDocNames = pendingDocs.map((d: any) => d.name);
+          if (!sharedMet) {
+            pendingDocNames.push('Certificado de Gravamen o Cédula Catastral');
+          }
+
+          const approvedDocs = documents.filter((d: any) => d.status === 'approved');
+
+          // Generate response with Gemini
+          const contextPrompt = `
              You are a helpful assistant for a residential complex.
              The user asked about house ${house.houseNumber}.
-             Pending Documents: ${pendingDocs.map((d: any) => d.name).join(', ') || 'None'}.
+             Pending Documents: ${pendingDocNames.join(', ') || 'None'}.
              Approved Documents: ${approvedDocs.map((d: any) => d.name).join(', ') || 'None'}.
              
              Generate a friendly, concise response in Spanish summarizing ONLY the status of their documents.
@@ -172,20 +185,20 @@ export const PublicAgent: React.FC = () => {
              IMPORTANT: If the user asks about anything else (e.g. general knowledge, weather, sports), politely refuse and state that you can only help with document status information.
            `;
 
-           const response = await ai.models.generateContent({
-             model: 'gemini-3-flash-preview',
-             contents: contextPrompt,
-           });
+          const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: contextPrompt,
+          });
 
-           const agentMsg: Message = {
-             id: Date.now().toString() + '_agent',
-             text: response.text || 'Aquí está la información de tu casa.',
-             sender: 'agent',
-             timestamp: new Date(),
-             type: 'house-info',
-             houseData: cleanHouse
-           };
-           setMessages((prev) => [...prev, agentMsg]);
+          const agentMsg: Message = {
+            id: Date.now().toString() + '_agent',
+            text: response.text || 'Aquí está la información de tu casa.',
+            sender: 'agent',
+            timestamp: new Date(),
+            type: 'house-info',
+            houseData: cleanHouse
+          };
+          setMessages((prev) => [...prev, agentMsg]);
         }
       } else {
         // General conversation
@@ -200,17 +213,17 @@ export const PublicAgent: React.FC = () => {
           2. If the user asks about document status but didn't provide a number, kindly ask for their house number.
           3. If the user asks about ANYTHING else (general knowledge, weather, sports, jokes, etc.), politely refuse. State that you are a specialized agent designed ONLY to provide information about the documentation status for the Alcázar de Salamanca project. Do not answer the question.
         `;
-        
+
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: chatPrompt,
+          model: 'gemini-3-flash-preview',
+          contents: chatPrompt,
         });
 
         const agentMsg: Message = {
-            id: Date.now().toString() + '_agent',
-            text: response.text || '¿Podrías indicarme tu número de casa para ayudarte?',
-            sender: 'agent',
-            timestamp: new Date(),
+          id: Date.now().toString() + '_agent',
+          text: response.text || '¿Podrías indicarme tu número de casa para ayudarte?',
+          sender: 'agent',
+          timestamp: new Date(),
         };
         setMessages((prev) => [...prev, agentMsg]);
       }
@@ -250,7 +263,7 @@ export const PublicAgent: React.FC = () => {
                   <p className="text-xs text-slate-400">Alcázar de Salamanca</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
                 className="text-slate-400 hover:text-white transition-colors"
               >
@@ -266,33 +279,63 @@ export const PublicAgent: React.FC = () => {
                   className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[85%] p-3 rounded-2xl text-sm ${
-                      msg.sender === 'user'
-                        ? 'bg-blue-600 text-white rounded-br-none'
-                        : 'bg-white text-slate-700 shadow-sm border border-gray-100 rounded-bl-none'
-                    }`}
+                    className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.sender === 'user'
+                      ? 'bg-blue-600 text-white rounded-br-none'
+                      : 'bg-white text-slate-700 shadow-sm border border-gray-100 rounded-bl-none'
+                      }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.text}</p>
                     {msg.type === 'house-info' && msg.houseData && (
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="font-bold text-xs uppercase text-slate-500">Estado Documental</span>
-                            </div>
-                            <div className="space-y-2">
-                                {msg.houseData.documents?.filter((d: any) => !d.isSubmitted).map((doc: any) => (
-                                    <div key={doc.id} className="flex items-center gap-2 text-xs text-red-600 bg-red-50 p-1.5 rounded">
-                                        <AlertCircle size={14} />
-                                        <span>Pendiente: {doc.name}</span>
-                                    </div>
-                                ))}
-                                {msg.houseData.documents?.filter((d: any) => !d.isSubmitted).length === 0 && (
-                                    <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 p-1.5 rounded">
-                                        <CheckCircle size={14} />
-                                        <span>¡Todo al día!</span>
-                                    </div>
-                                )}
-                            </div>
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-bold text-xs uppercase text-slate-500">Estado Documental</span>
                         </div>
+                        <div className="space-y-2">
+                          {(() => {
+                            const docs = msg.houseData?.documents || [];
+                            const hasLien = docs.find((d: any) => d.id === 'lien')?.isSubmitted;
+                            const hasCatastral = docs.find((d: any) => d.id === 'catastral')?.isSubmitted;
+                            const sharedMet = hasLien || hasCatastral;
+
+                            const items = docs.filter((d: any) => {
+                              if (d.id === 'lien' || d.id === 'catastral') return false;
+                              return !d.isSubmitted;
+                            }).map((doc: any) => (
+                              <div key={doc.id} className="flex items-center gap-2 text-xs text-red-600 bg-red-50 p-1.5 rounded">
+                                <AlertCircle size={14} />
+                                <span>Pendiente: {doc.name}</span>
+                              </div>
+                            ));
+
+                            if (!sharedMet) {
+                              items.push(
+                                <div key="shared_lien_catastral" className="flex items-center gap-2 text-xs text-red-600 bg-red-50 p-1.5 rounded">
+                                  <AlertCircle size={14} />
+                                  <span>Pendiente: Certificado de Gravamen o Cédula Catastral</span>
+                                </div>
+                              );
+                            }
+                            return items;
+                          })()}
+                          {(() => {
+                            const docs = msg.houseData?.documents || [];
+                            const hasLien = docs.find((d: any) => d.id === 'lien')?.isSubmitted;
+                            const hasCatastral = docs.find((d: any) => d.id === 'catastral')?.isSubmitted;
+                            const sharedMet = hasLien || hasCatastral;
+                            const pendingOther = docs.filter((d: any) => d.id !== 'lien' && d.id !== 'catastral' && !d.isSubmitted).length;
+
+                            if (sharedMet && pendingOther === 0) {
+                              return (
+                                <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 p-1.5 rounded">
+                                  <CheckCircle size={14} />
+                                  <span>¡Todo al día!</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      </div>
                     )}
                     <span className={`text-[10px] block mt-1 ${msg.sender === 'user' ? 'text-blue-200' : 'text-gray-400'}`}>
                       {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
