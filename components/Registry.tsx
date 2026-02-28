@@ -117,22 +117,22 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
     doc.text(`TOTAL UNIDADES PENDIENTES EN LISTADO: ${housesForReport.length}`, 18, 44.5);
 
     const tableData = housesForReport.map(h => {
-      // Group lien and catastral for the report logic
       const hDocs = h.documents;
       const hasLien = hDocs.find(d => d.id === 'lien')?.isSubmitted;
       const hasCatastral = hDocs.find(d => d.id === 'catastral')?.isSubmitted;
       const sharedMet = hasLien || hasCatastral;
 
-      const docStatusList = hDocs.filter(d => {
-        // If one of the shared ones is submitted, we only want to show the one that's submitted as "DONE"
-        // If neither is submitted, we show both as "TODO" but they satisfy the same slot.
-        // For simplicity in the list, we'll show them as is, but maybe mark the shared nature.
-        return true;
-      }).map(d => {
-        const marker = d.isSubmitted ? "DONE:" : "TODO:";
-        return `${marker}${d.name}`;
-      }).join('\n');
+      const otherDocs = hDocs.filter(d => d.id !== 'lien' && d.id !== 'catastral');
+      const lines = otherDocs.map(d => `${d.isSubmitted ? "DONE:" : "TODO:"}${d.name}`);
 
+      if (sharedMet) {
+        if (hasLien) lines.push(`DONE:Cert. Gravámenes`);
+        if (hasCatastral) lines.push(`DONE:Cédula Catastral`);
+      } else {
+        lines.push(`TODO:Certificado de Gravamen o Cédula Catastral`);
+      }
+
+      const docStatusList = lines.join('\n');
       const ownerLabel = h.livesAbroad ? `${h.ownerName} (EXTERIOR)` : h.ownerName;
 
       return [
@@ -212,16 +212,19 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
       doc.setFont("helvetica", "normal");
 
       let currentY = finalY + 8;
-      docTypes.forEach((docType, index) => {
-        let totalMissing = 0;
+      const processedDocTypes = docTypes.filter(d => d.id !== 'catastral');
 
-        if (docType.id === 'lien' || docType.id === 'catastral') {
-          // A requirement for the shared slot is missing ONLY if BOTH are missing
+      processedDocTypes.forEach((docType, index) => {
+        let totalMissing = 0;
+        let displayName = docType.name;
+
+        if (docType.id === 'lien') {
           totalMissing = housesForReport.filter(h => {
             const hLien = h.documents.find(d => d.id === 'lien');
             const hCat = h.documents.find(d => d.id === 'catastral');
             return !hLien?.isSubmitted && !hCat?.isSubmitted;
           }).length;
+          displayName = "Certificado de Gravamen o Cédula Catastral";
         } else {
           totalMissing = housesForReport.filter(h =>
             h.documents.find(d => d.id === docType.id && !d.isSubmitted)
@@ -229,25 +232,25 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
         }
 
         const col = index % 2 === 0 ? 14 : 105;
-        if (index % 2 !== 0) currentY -= 5;
+        if (index % 2 !== 1) { // Only increment Y for even indices (0, 2, 4...)
+          // This logic was a bit messy in original, let's make it cleaner
+        }
+
+        // Manual Y position based on index to avoid overlaps
+        const rowIdx = Math.floor(index / 2);
+        const yPos = finalY + 8 + (rowIdx * 5);
 
         if (totalMissing > 0) {
           doc.setTextColor(239, 68, 68);
           doc.setFillColor(239, 68, 68);
-          doc.circle(col + 0.8, currentY - 0.8, 0.5, 'F');
+          doc.circle(col + 0.8, yPos - 0.8, 0.5, 'F');
         } else {
           doc.setTextColor(150);
           doc.setFillColor(200, 200, 200);
-          doc.circle(col + 0.8, currentY - 0.8, 0.5, 'F');
+          doc.circle(col + 0.8, yPos - 0.8, 0.5, 'F');
         }
 
-        let label = `${docType.name}: ${totalMissing} unidades pendientes`;
-        if (docType.id === 'lien' || docType.id === 'catastral') {
-          label = `${docType.name} (u opcional): ${totalMissing} pend.`;
-        }
-
-        doc.text(label, col + 4, currentY);
-        currentY += 5;
+        doc.text(`${displayName}: ${totalMissing} pend.`, col + 4, yPos);
       });
     }
 
@@ -278,11 +281,19 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
     doc.text(`TOTAL UNIDADES PENDIENTES EN LISTADO: ${housesForReport.length}`, 18, 44.5);
 
     const tableData = housesForReport.map(h => {
-      const pendingOnly = h.documents
-        .filter(d => !d.isSubmitted)
-        .map(d => `TODO:${d.name}`)
-        .join('\n');
+      const hDocs = h.documents;
+      const hasLien = hDocs.find(d => d.id === 'lien')?.isSubmitted;
+      const hasCatastral = hDocs.find(d => d.id === 'catastral')?.isSubmitted;
+      const sharedMet = hasLien || hasCatastral;
 
+      const pendingLines = hDocs.filter(d => d.id !== 'lien' && d.id !== 'catastral' && !d.isSubmitted)
+        .map(d => `TODO:${d.name}`);
+
+      if (!sharedMet) {
+        pendingLines.push(`TODO:Certificado de Gravamen o Cédula Catastral`);
+      }
+
+      const pendingOnly = pendingLines.join('\n');
       const ownerLabel = h.livesAbroad ? `${h.ownerName} (EXTERIOR)` : h.ownerName;
 
       return [
