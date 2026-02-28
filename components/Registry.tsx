@@ -467,8 +467,22 @@ export const Registry: React.FC<RegistryProps> = ({ houses, onSelectHouse, onUpd
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      const pendingDocs = house.documents.filter(d => !d.isSubmitted);
-                      const docList = pendingDocs.map(d => `• ${d.name}`).join('\n');
+                      const hasLien = house.documents.find(d => d.id === 'lien')?.isSubmitted;
+                      const hasCatastral = house.documents.find(d => d.id === 'catastral')?.isSubmitted;
+                      const sharedMet = hasLien || hasCatastral;
+
+                      const pendingDocLines = house.documents
+                        .filter(d => {
+                          if (d.id === 'lien' || d.id === 'catastral') return false;
+                          return !d.isSubmitted;
+                        })
+                        .map(d => `• ${d.name}`);
+
+                      if (!sharedMet) {
+                        pendingDocLines.push('• Certificado de Gravamen o Cédula Catastral');
+                      }
+
+                      const docList = pendingDocLines.join('\n');
                       const message = `Hola ${house.ownerName}, te saludamos de Alcázar de Salamanca. 👋\n\nTe recordamos que para completar tu registro de la Casa ${house.houseNumber}, aún tenemos pendientes los siguientes documentos:\n\n${docList}\n\nQuedamos atentos a tu entrega para poder finalizar el proceso. ¡Muchas gracias! 😊`;
 
                       navigator.clipboard.writeText(message);
