@@ -3,6 +3,8 @@ import { House, REQUIRED_DOCS } from '../types';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 interface DashboardProps {
   houses: House[];
@@ -268,6 +270,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ houses, onNavigate, onSele
   const generatePDF = () => {
     const doc = new jsPDF();
 
+    // Global Stats over TOTAL houses (114)
+    const totalAllHouses = houses.length;
+    const constructoraHouses = houses.filter(h => h.isConstructora).length;
+    const completedAllCount = houses.filter(h => h.progress === 100 && !h.isConstructora).length;
+    const pendingAllCount = houses.filter(h => h.progress < 100 && !h.isConstructora).length;
+    
+    const allRequiredDocs = totalAllHouses * (REQUIRED_DOCS.length - 1);
+    const allSubmittedDocs = houses.reduce((acc, h) => acc + getHouseSubmittedCount(h), 0);
+    const allPendingDocs = houses.reduce((acc, h) => acc + getHousePendingCount(h), 0);
+    const allDocProgress = allRequiredDocs > 0 ? Math.round((allSubmittedDocs / allRequiredDocs) * 100) : 0;
+    const allCompletionRate = totalAllHouses > 0 ? Math.round((completedAllCount / totalAllHouses) * 100) : 0;
+
     // Header
     doc.setFontSize(20);
     doc.setTextColor(19, 127, 236);
@@ -278,18 +292,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ houses, onNavigate, onSele
     doc.text(`Fecha de Corte: ${new Date().toLocaleDateString()}`, 14, 32);
 
     // Summary Stats
-    doc.setFillColor(246, 247, 248);
-    doc.rect(14, 40, 182, 35, 'F');
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.text(`Total Casas (Objetivo): ${totalActiveHouses}`, 20, 50);
-    doc.text(`Casas Completadas: ${completedCount} (${completionRate}%)`, 20, 57);
-    doc.text(`Avance Documental Global: ${globalDocProgress}%`, 20, 64);
-    doc.text(`Documentos Recibidos: ${totalSubmittedDocs} / ${totalRequiredDocs}`, 100, 50);
-    doc.text(`Documentos Pendientes: ${pendingDocsCount}`, 100, 57);
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(14, 40, 182, 43, 'FD'); // Filled and bordered
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total Casas (Objetivo): ${totalAllHouses}`, 20, 48);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Casas Completas: ${completedAllCount} (${allCompletionRate}%)`, 20, 55);
+    doc.text(`Casas Pendientes: ${pendingAllCount}`, 20, 62);
+    doc.text(`Casas Constructora: ${constructoraHouses}`, 20, 69);
+    doc.text(`Avance Documental Global: ${allDocProgress}%`, 20, 78);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text(`Documentos Recibidos: ${allSubmittedDocs} / ${allRequiredDocs}`, 110, 48);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Documentos Pendientes: ${allPendingDocs}`, 110, 55);
 
-    // Table - Only active houses
-    const tableData = activeHouses.map(h => {
+    // Table - All houses including Constructora
+    const tableData = houses.map(h => {
       // Resolve Stage Name based on ID (Consistency with Registry and Dashboard metrics)
       let stageName = h.stage as string;
       const stageConfig = stagesConfig.find(s => s.filter(h));
@@ -297,26 +319,227 @@ export const Dashboard: React.FC<DashboardProps> = ({ houses, onNavigate, onSele
         stageName = stageConfig.name;
       }
 
+      let status = h.progress === 100 ? 'COMPLETA' : 'PENDIENTE';
+      let progressDisplay = `${h.progress}%`;
+      
+      if (h.isConstructora) {
+        status = 'CONSTRUCTORA';
+        progressDisplay = '-';
+      }
+
       return [
         h.houseNumber,
         h.ownerName,
-        stageName, // Corrected: Uses "Etapa X" instead of internal enum
-        `${h.progress}%`,
-        h.progress === 100 ? 'COMPLETO' : 'PENDIENTE'
+        stageName,
+        progressDisplay,
+        status
       ];
     });
 
     autoTable(doc, {
-      startY: 80,
+      startY: 90,
       head: [['Casa', 'Propietario', 'Etapa', 'Progreso', 'Estado']],
       body: tableData,
       theme: 'grid',
-      headStyles: { fillColor: [19, 127, 236] },
-      styles: { fontSize: 8 },
-      alternateRowStyles: { fillColor: [246, 247, 248] }
+      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 3 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      didParseCell: function(data) {
+        // Find row status from raw data correctly
+        const rowData = data.row.raw as string[];
+        const statusVal = rowData[4];
+
+        // Color coding for the 'Estado' column 
+        if (data.section === 'body' && data.column.index === 4) {
+            if (statusVal === 'COMPLETA') {
+                data.cell.styles.textColor = [16, 185, 129]; // emerald-500
+                data.cell.styles.fontStyle = 'bold';
+            } else if (statusVal === 'PENDIENTE') {
+                data.cell.styles.textColor = [249, 115, 22]; // orange-500
+                data.cell.styles.fontStyle = 'bold';
+            } else if (statusVal === 'CONSTRUCTORA') {
+                data.cell.styles.textColor = [100, 116, 139]; // slate-500
+                data.cell.styles.fontStyle = 'italic';
+            }
+        }
+        
+        // Gray out the entire row for constructora to distinguish them clearly
+        if (data.section === 'body' && statusVal === 'CONSTRUCTORA') {
+             data.cell.styles.fillColor = [241, 245, 249]; // slate-100
+             data.cell.styles.textColor = [148, 163, 184]; // slate-400
+        }
+      }
     });
 
     doc.save(`Alcazar_Reporte_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  const generateExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Informe Medidores');
+
+    // Global Stats over TOTAL houses (114)
+    const totalAllHouses = houses.length;
+    const constructoraHouses = houses.filter(h => h.isConstructora).length;
+    const completedAllCount = houses.filter(h => h.progress === 100 && !h.isConstructora).length;
+    const pendingAllCount = houses.filter(h => h.progress < 100 && !h.isConstructora).length;
+    
+    const allRequiredDocs = totalAllHouses * (REQUIRED_DOCS.length - 1);
+    const allSubmittedDocs = houses.reduce((acc, h) => acc + getHouseSubmittedCount(h), 0);
+    const allPendingDocs = houses.reduce((acc, h) => acc + getHousePendingCount(h), 0);
+    const allDocProgress = allRequiredDocs > 0 ? Math.round((allSubmittedDocs / allRequiredDocs) * 100) : 0;
+    const allCompletionRate = totalAllHouses > 0 ? Math.round((completedAllCount / totalAllHouses) * 100) : 0;
+
+    // Title Row
+    worksheet.mergeCells('A1', 'E1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = 'Alcázar de Salamanca - Gestión de Medidores';
+    titleCell.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF137FEC' } // primary color
+    };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    worksheet.getRow(1).height = 30;
+
+    // Subtitle Date Row
+    worksheet.mergeCells('A2', 'E2');
+    const dateCell = worksheet.getCell('A2');
+    dateCell.value = `Fecha de Corte: ${new Date().toLocaleDateString()}`;
+    dateCell.font = { name: 'Arial', size: 11, italic: true };
+    dateCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    worksheet.getRow(2).height = 20;
+
+    // Empty row
+    worksheet.addRow([]);
+
+    // Summary Section
+    worksheet.addRow(['Total Casas (Objetivo):', totalAllHouses, '', 'Documentos Recibidos:', `${allSubmittedDocs} / ${allRequiredDocs}`]);
+    worksheet.addRow(['Casas Completas:', `${completedAllCount} (${allCompletionRate}%)`, '', 'Documentos Pendientes:', allPendingDocs]);
+    worksheet.addRow(['Casas Pendientes:', pendingAllCount, '', '', '']);
+    worksheet.addRow(['Casas Constructora:', constructoraHouses, '', '', '']);
+    worksheet.addRow([]);
+    worksheet.addRow(['Avance Documental Global:', `${allDocProgress}%`, '', '', '']);
+
+    // Style Summary Section
+    // Rows 4 to 9 are the summary rows
+    [4, 5, 6, 7, 9].forEach(rowNum => {
+      const row = worksheet.getRow(rowNum);
+      const isHeaderRow = rowNum === 4 || rowNum === 9; // Highlight 'Total Casas' and 'Avance Global'
+
+      row.getCell(1).font = { name: 'Arial', size: 11, bold: isHeaderRow, color: { argb: 'FF1E293B' } }; // slate-800
+      row.getCell(2).font = { name: 'Arial', size: 11, bold: isHeaderRow, color: { argb: 'FF1E293B' } }; 
+      
+      row.getCell(4).font = { name: 'Arial', size: 11, bold: rowNum === 4, color: { argb: 'FF1E293B' } };
+      row.getCell(5).font = { name: 'Arial', size: 11, bold: rowNum === 4, color: { argb: 'FF1E293B' } };
+
+      // Add a light background to the summary area
+      for (let c = 1; c <= 5; c++) {
+        row.getCell(c).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF8FAFC' } // slate-50
+        };
+      }
+    });
+
+    // Empty row before headers
+    worksheet.addRow([]);
+
+    // Headers (Now starts at row 11)
+    const headerRow = worksheet.addRow(['Casa', 'Propietario', 'Etapa', 'Progreso', 'Estado']);
+    headerRow.eachCell((cell, colNumber) => {
+      cell.font = { name: 'Arial', bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1E293B' } // slate-800
+      };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      };
+    });
+    headerRow.height = 20;
+
+    houses.forEach((h, index) => {
+      let stageName = h.stage as string;
+      const stageConfig = stagesConfig.find(s => s.filter(h));
+      if (stageConfig) {
+        stageName = stageConfig.name;
+      }
+      
+      let status = h.progress === 100 ? 'COMPLETA' : 'PENDIENTE';
+      let progressDisplay = `${h.progress}%`;
+      let isConstructora = false;
+      
+      if (h.isConstructora) {
+        status = 'CONSTRUCTORA';
+        progressDisplay = '-';
+        isConstructora = true;
+      }
+
+      const row = worksheet.addRow([
+        h.houseNumber,
+        h.ownerName,
+        stageName,
+        progressDisplay,
+        status
+      ]);
+
+      const isEvenRow = index % 2 === 0;
+
+      row.eachCell((cell, colNumber) => {
+        cell.font = { name: 'Arial', size: 10 };
+        cell.alignment = { vertical: 'middle', horizontal: colNumber === 2 ? 'left' : 'center' };
+        
+        let bgColor = isEvenRow ? 'FFFFFFFF' : 'FFF8FAFC'; // slate-50
+
+        if (isConstructora) {
+          bgColor = 'FFF1F5F9'; // slate-100
+          cell.font = { name: 'Arial', size: 10, color: { argb: 'FF94A3B8' }, italic: true }; // slate-400
+        }
+
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: bgColor }
+        };
+        
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+        
+        if (colNumber === 5) {
+          if (status === 'COMPLETA') {
+            cell.font = { ...cell.font, color: { argb: 'FF10B981' }, bold: true }; // emerald-500
+          } else if (status === 'PENDIENTE') {
+            cell.font = { ...cell.font, color: { argb: 'FFF97316' }, bold: true }; // orange-500
+          }
+        }
+      });
+    });
+
+    // Set Column Widths
+    worksheet.getColumn(1).width = 12; // Casa
+    worksheet.getColumn(2).width = 40; // Propietario
+    worksheet.getColumn(3).width = 18; // Etapa
+    worksheet.getColumn(4).width = 25; // Progreso / Documentos
+    worksheet.getColumn(5).width = 20; // Estado / Valores
+
+    // Add AutoFilter around row 11 where the headers are
+    worksheet.autoFilter = 'A11:E11';
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `Alcazar_Reporte_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const getStatusColor = (progress: number) => {
@@ -570,7 +793,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ houses, onNavigate, onSele
         </section>
       </div>
 
-      <div className="pb-8 flex justify-end">
+      <div className="pb-8 flex flex-col md:flex-row justify-end gap-3">
+        <button
+          onClick={generateExcel}
+          className="w-full md:w-auto bg-emerald-500 text-white py-3 px-8 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-colors"
+        >
+          <span className="material-symbols-outlined">table</span>
+          Exportar a Excel
+        </button>
         <button
           onClick={generatePDF}
           className="w-full md:w-auto bg-primary text-white py-3 px-8 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:bg-blue-600 transition-colors"
